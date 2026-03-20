@@ -12,7 +12,6 @@ RUN pnpm install --frozen-lockfile
 
 COPY packages/shared/ packages/shared/
 COPY backend/ backend/
-COPY .env .env 2>/dev/null || true
 
 WORKDIR /app/backend
 
