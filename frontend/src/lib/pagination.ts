@@ -31,7 +31,7 @@ export function mapPaginatedResponse<T>(
 
   const total = raw?.total ?? raw?.pagination?.total ?? arr.length
   const page = raw?.page ?? raw?.pagination?.page ?? 1
-  const limit = raw?.limit ?? raw?.pagination?.limit ?? arr.length || 20
+  const limit = raw?.limit ?? raw?.pagination?.limit ?? (arr.length || 20)
   const totalPages =
     raw?.totalPages ?? Math.ceil(total / (limit || 1))
 
