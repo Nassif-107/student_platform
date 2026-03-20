@@ -22,24 +22,38 @@
 - pnpm 9+
 - Docker + Docker Compose
 
-## Запуск
+## Запуск (Docker, всё сразу)
+
+```bash
+cp .env.example .env
+docker compose -f docker-compose.dev.yml up -d --build
+```
+
+Подождать ~30 секунд пока все сервисы запустятся, потом заполнить БД:
 
 ```bash
 pnpm install
+cd backend && pnpm seed
+```
 
+Открыть http://localhost:3000
+
+## Запуск (без Docker для backend/frontend)
+
+```bash
+pnpm install
 cp .env.example .env
 
-docker compose -f docker-compose.dev.yml up -d
+# только базы данных в Docker
+docker compose -f docker-compose.dev.yml up -d mongodb neo4j influxdb redis
 
-# подождать ~30 секунд пока БД поднимутся
+# подождать ~30 секунд
 
 cd backend && pnpm seed
+pnpm dev          # терминал 1
 
-# терминал 1
-pnpm dev
-
-# терминал 2
-cd ../frontend && pnpm dev
+cd ../frontend
+pnpm dev          # терминал 2
 ```
 
 Открыть http://localhost:3000
@@ -109,10 +123,17 @@ student-platform/
 ## Команды
 
 ```bash
+# запустить всё
+docker compose -f docker-compose.dev.yml up -d --build
+
 # заполнить БД тестовыми данными
 cd backend && pnpm seed
 
-# остановить базы данных
+# посмотреть логи
+docker compose -f docker-compose.dev.yml logs -f backend
+docker compose -f docker-compose.dev.yml logs -f frontend
+
+# остановить всё
 docker compose -f docker-compose.dev.yml down
 
 # удалить все данные и начать заново

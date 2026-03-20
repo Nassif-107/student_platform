@@ -12,7 +12,9 @@
  */
 
 import dotenv from 'dotenv';
-dotenv.config();
+import { fileURLToPath } from 'node:url';
+import { resolve, dirname } from 'node:path';
+dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../../.env') });
 
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
