@@ -15,6 +15,8 @@ COPY frontend/ frontend/
 
 WORKDIR /app/frontend
 
+ENV VITE_API_TARGET=http://backend:3001
+
 EXPOSE 3000
 
-CMD ["pnpm", "dev", "--host", "0.0.0.0", "--port", "3000"]
+CMD ["pnpm", "dev"]

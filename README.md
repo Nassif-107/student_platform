@@ -27,24 +27,23 @@
 ```bash
 cp .env.example .env
 docker compose -f docker-compose.dev.yml up -d --build
-```
 
-Подождать ~30 секунд пока все сервисы запустятся, потом заполнить БД:
+# подождать ~1 минуту пока всё соберётся и запустится
 
-```bash
-pnpm install
-cd backend && pnpm seed
+# заполнить БД тестовыми данными
+docker compose -f docker-compose.dev.yml exec backend pnpm seed
 ```
 
 Открыть http://localhost:3000
 
 ## Запуск (без Docker для backend/frontend)
 
+Если Docker для приложений не нужен, можно запустить только БД:
+
 ```bash
 pnpm install
 cp .env.example .env
 
-# только базы данных в Docker
 docker compose -f docker-compose.dev.yml up -d mongodb neo4j influxdb redis
 
 # подождать ~30 секунд
