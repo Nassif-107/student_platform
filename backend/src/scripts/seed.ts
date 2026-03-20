@@ -26,6 +26,20 @@ import { getRedis, closeRedis } from '../config/redis.js';
 import { Point } from '@influxdata/influxdb-client';
 import { logger } from '../utils/logger.js';
 
+// Import all models so Mongoose registers them
+import '../modules/users/users.model.js';
+import '../modules/courses/courses.model.js';
+import '../modules/professors/professors.model.js';
+import '../modules/materials/materials.model.js';
+import '../modules/materials/comments.model.js';
+import '../modules/reviews/reviews.model.js';
+import '../modules/forum/forum.model.js';
+import '../modules/groups/groups.model.js';
+import '../modules/deadlines/deadlines.model.js';
+import '../modules/marketplace/marketplace.model.js';
+import '../modules/events/events.model.js';
+import '../modules/notifications/notifications.model.js';
+
 // ─── Configuration ──────────────────────────────────────────
 const BCRYPT_ROUNDS = 12;
 const PASSWORD = 'password123'; // demo password for all users
@@ -504,6 +518,7 @@ async function seed() {
 }
 
 seed().catch((err) => {
-  logger.error(err, 'Seed failed');
+  console.error('Seed failed:', err instanceof Error ? err.message : err);
+  if (err instanceof Error && err.stack) console.error(err.stack);
   process.exit(1);
 });

@@ -7,8 +7,18 @@ import { env } from '../config/env.js';
  */
 const isDebug = env.NODE_ENV !== 'production';
 
+function formatArg(a: unknown): string {
+  if (typeof a === 'string') return a;
+  if (a instanceof Error) return `${a.message}${a.stack ? '\n' + a.stack : ''}`;
+  try {
+    return JSON.stringify(a);
+  } catch {
+    return String(a);
+  }
+}
+
 function formatMsg(args: unknown[]): string {
-  return args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
+  return args.map(formatArg).join(' ');
 }
 
 export const logger = {
