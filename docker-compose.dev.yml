@@ -1,0 +1,109 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: sp-mongodb-dev
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongodb_dev_data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  neo4j:
+    image: neo4j:5
+    container_name: sp-neo4j-dev
+    ports:
+      - '7474:7474'
+      - '7687:7687'
+    environment:
+      NEO4J_AUTH: neo4j/dev-secret
+      NEO4J_PLUGINS: '["apoc"]'
+    volumes:
+      - neo4j_dev_data:/data
+    healthcheck:
+      test: ['CMD', 'cypher-shell', '-u', 'neo4j', '-p', 'dev-secret', 'RETURN 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  influxdb:
+    image: influxdb:2
+    container_name: sp-influxdb-dev
+    ports:
+      - '8086:8086'
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: dev-influx-password
+      DOCKER_INFLUXDB_INIT_ORG: student-platform
+      DOCKER_INFLUXDB_INIT_BUCKET: metrics
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: dev-influx-token
+    volumes:
+      - influxdb_dev_data:/var/lib/influxdb2
+    healthcheck:
+      test: ['CMD', 'influx', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: sp-redis-dev
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: sp-backend-dev
+    ports:
+      - '3001:3001'
+    env_file: .env
+    volumes:
+      - ./backend/src:/app/backend/src
+      - ./packages:/app/packages
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: sp-frontend-dev
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./frontend/src:/app/frontend/src
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  mongodb_dev_data:
+  neo4j_dev_data:
+  influxdb_dev_data:
+  redis_dev_data:

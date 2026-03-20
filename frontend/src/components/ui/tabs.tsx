@@ -1,0 +1,82 @@
+import * as React from 'react'
+import * as TabsPrimitive from '@radix-ui/react-tabs'
+import { motion } from 'framer-motion'
+import { cn } from '@/lib/cn'
+
+const Tabs = TabsPrimitive.Root
+
+let tabsListCounter = 0
+
+const TabsListContext = React.createContext<string>('tab-indicator')
+
+const TabsList = React.forwardRef<
+  React.ComponentRef<typeof TabsPrimitive.List>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
+>(({ className, ...props }, ref) => {
+  const layoutId = React.useMemo(() => `tab-indicator-${++tabsListCounter}`, [])
+  return (
+    <TabsListContext.Provider value={layoutId}>
+      <TabsPrimitive.List
+        ref={ref}
+        className={cn(
+          'relative inline-flex h-10 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground',
+          className
+        )}
+        {...props}
+      />
+    </TabsListContext.Provider>
+  )
+})
+TabsList.displayName = 'TabsList'
+
+const TabsTrigger = React.forwardRef<
+  React.ComponentRef<typeof TabsPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
+>(({ className, children, ...props }, ref) => {
+  const layoutId = React.useContext(TabsListContext)
+  return (
+    <TabsPrimitive.Trigger
+      ref={ref}
+      className={cn(
+        'relative inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium',
+        'ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        'disabled:pointer-events-none disabled:opacity-50',
+        'data-[state=active]:text-foreground',
+        className
+      )}
+      {...props}
+    >
+      {children}
+      <TabsActiveIndicator layoutId={layoutId} />
+    </TabsPrimitive.Trigger>
+  )
+})
+TabsTrigger.displayName = 'TabsTrigger'
+
+function TabsActiveIndicator({ layoutId }: { layoutId: string }) {
+  return (
+    <motion.span
+      layoutId={layoutId}
+      className="absolute inset-0 z-[-1] rounded-md bg-background shadow-sm"
+      style={{ originY: '0px' }}
+      transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
+    />
+  )
+}
+
+const TabsContent = React.forwardRef<
+  React.ComponentRef<typeof TabsPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.Content
+    ref={ref}
+    className={cn(
+      'mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+      className
+    )}
+    {...props}
+  />
+))
+TabsContent.displayName = 'TabsContent'
+
+export { Tabs, TabsList, TabsTrigger, TabsContent }
