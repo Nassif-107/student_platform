@@ -1,20 +1,18 @@
 FROM node:20-alpine
 
-RUN mkdir -p /app && chown -R node:node /app
 WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-COPY --chown=node:node pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY --chown=node:node packages/shared/package.json packages/shared/
-COPY --chown=node:node frontend/package.json frontend/
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY packages/shared/package.json packages/shared/
+COPY frontend/package.json frontend/
 
 RUN pnpm install --frozen-lockfile
 
-COPY --chown=node:node packages/shared/ packages/shared/
-COPY --chown=node:node frontend/ frontend/
+COPY packages/shared/ packages/shared/
+COPY frontend/ frontend/
 
-USER node
 WORKDIR /app/frontend
 
 EXPOSE 3000
