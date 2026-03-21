@@ -57,9 +57,10 @@ async function createReview(
       targetType: 'course',
       targetId: courseId,
       targetName: 'Математический анализ',
-      ratings: { overall: 8, difficulty: 7 },
+      ratings: { overall: 8, difficulty: 7, usefulness: 9 },
       text: 'Хороший курс, много практических задач на занятиях',
       semester,
+      anonymous: false,
     },
   });
   return res;
