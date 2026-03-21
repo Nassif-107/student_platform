@@ -4,16 +4,18 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import mongoose from 'mongoose';
-import { UserModel } from '../../src/modules/users/users.model.js';
-import { CourseModel } from '../../src/modules/courses/courses.model.js';
-import { MaterialModel } from '../../src/modules/materials/materials.model.js';
-import { ReviewModel } from '../../src/modules/reviews/reviews.model.js';
 import { cleanMongo } from '../helpers.js';
+
+const getUserModel = () => mongoose.model('User');
+const getCourseModel = () => mongoose.model('Course');
+const getMaterialModel = () => mongoose.model('Material');
+const getReviewModel = () => mongoose.model('Review');
 
 beforeEach(cleanMongo);
 
 describe('UserModel validation', () => {
   it('rejects missing email (required)', async () => {
+    const UserModel = getUserModel();
     const user = new UserModel({
       passwordHash: '$2b$12$fakehashvalue1234567890',
       name: { first: 'Иван', last: 'Петров' },
@@ -27,6 +29,7 @@ describe('UserModel validation', () => {
   });
 
   it('rejects invalid role', async () => {
+    const UserModel = getUserModel();
     const user = new UserModel({
       email: 'invalid-role@university.ru',
       passwordHash: '$2b$12$fakehashvalue1234567890',
@@ -42,6 +45,7 @@ describe('UserModel validation', () => {
   });
 
   it('accepts a valid user with all required fields', async () => {
+    const UserModel = getUserModel();
     const user = new UserModel({
       email: 'valid@university.ru',
       passwordHash: '$2b$12$fakehashvalue1234567890',
@@ -59,6 +63,7 @@ describe('UserModel validation', () => {
 
 describe('CourseModel validation', () => {
   it('rejects invalid type (not обязательный/по выбору/факультатив)', async () => {
+    const CourseModel = getCourseModel();
     const course = new CourseModel({
       title: 'Тестовый курс',
       code: 'TST101',
@@ -76,6 +81,7 @@ describe('CourseModel validation', () => {
   });
 
   it('accepts valid type "обязательный"', async () => {
+    const CourseModel = getCourseModel();
     const course = new CourseModel({
       title: 'Тестовый курс',
       code: 'TST101',
@@ -93,6 +99,7 @@ describe('CourseModel validation', () => {
   });
 
   it('accepts valid type "по выбору"', async () => {
+    const CourseModel = getCourseModel();
     const course = new CourseModel({
       title: 'Курс по выбору',
       code: 'ELC101',
@@ -110,6 +117,7 @@ describe('CourseModel validation', () => {
   });
 
   it('accepts valid type "факультатив"', async () => {
+    const CourseModel = getCourseModel();
     const course = new CourseModel({
       title: 'Факультатив',
       code: 'FAC101',
@@ -129,6 +137,7 @@ describe('CourseModel validation', () => {
 
 describe('MaterialModel validation', () => {
   it('rejects invalid type (not конспект/лабораторная/etc.)', async () => {
+    const MaterialModel = getMaterialModel();
     const material = new MaterialModel({
       title: 'Материал',
       course: {
@@ -148,6 +157,7 @@ describe('MaterialModel validation', () => {
   });
 
   it('accepts valid type "конспект"', async () => {
+    const MaterialModel = getMaterialModel();
     const material = new MaterialModel({
       title: 'Конспект лекции',
       course: {
@@ -167,6 +177,7 @@ describe('MaterialModel validation', () => {
   });
 
   it('accepts valid type "лабораторная"', async () => {
+    const MaterialModel = getMaterialModel();
     const material = new MaterialModel({
       title: 'Лабораторная работа',
       course: {
@@ -188,6 +199,7 @@ describe('MaterialModel validation', () => {
 
 describe('ReviewModel validation', () => {
   it('rejects overall rating below 1', async () => {
+    const ReviewModel = getReviewModel();
     const review = new ReviewModel({
       target: {
         type: 'course',
@@ -211,6 +223,7 @@ describe('ReviewModel validation', () => {
   });
 
   it('rejects overall rating above 10', async () => {
+    const ReviewModel = getReviewModel();
     const review = new ReviewModel({
       target: {
         type: 'course',
@@ -234,6 +247,7 @@ describe('ReviewModel validation', () => {
   });
 
   it('accepts valid rating between 1 and 10', async () => {
+    const ReviewModel = getReviewModel();
     const review = new ReviewModel({
       target: {
         type: 'course',

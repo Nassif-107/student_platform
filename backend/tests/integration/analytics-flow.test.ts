@@ -4,8 +4,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import mongoose from 'mongoose';
 import { getApp, cleanAll, registerTestUser, authHeader } from '../helpers.js';
-import { CourseModel } from '../../src/modules/courses/courses.model.js';
-import { UserModel } from '../../src/modules/users/users.model.js';
+
+const getCourseModel = () => mongoose.model('Course');
+const getUserModel = () => mongoose.model('User');
 
 beforeEach(cleanAll);
 
@@ -32,6 +33,8 @@ describe('Analytics flow — cross-DB', () => {
 
   it('GET /api/analytics/leaderboard returns sorted users', async () => {
     const app = await getApp();
+
+    const UserModel = getUserModel();
 
     // Create users with different reputation scores
     const fakeHash = '$2b$12$fakehashvalue1234567890';
@@ -79,6 +82,8 @@ describe('Analytics flow — cross-DB', () => {
 
   it('GET /api/analytics/courses/popular returns MongoDB aggregation data', async () => {
     const app = await getApp();
+
+    const CourseModel = getCourseModel();
 
     // Create courses with enrollment data
     await CourseModel.create([

@@ -6,7 +6,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import mongoose from 'mongoose';
 import { getApp, cleanAll, registerTestUser, authHeader } from '../helpers.js';
-import { QuestionModel, AnswerModel } from '../../src/modules/forum/forum.model.js';
+
+const getQuestionModel = () => mongoose.model('Question');
+const getAnswerModel = () => mongoose.model('Answer');
 
 beforeEach(cleanAll);
 
@@ -24,6 +26,9 @@ describe('Concurrent vote race', () => {
         }),
       ),
     );
+
+    const QuestionModel = getQuestionModel();
+    const AnswerModel = getAnswerModel();
 
     // Create a question
     const authorId = new mongoose.Types.ObjectId();
@@ -76,6 +81,9 @@ describe('Concurrent vote race', () => {
   it('same user voting twice toggles their vote instead of duplicating', async () => {
     const app = await getApp();
     const { user, accessToken } = await registerTestUser(app);
+
+    const QuestionModel = getQuestionModel();
+    const AnswerModel = getAnswerModel();
 
     const authorId = new mongoose.Types.ObjectId();
     const question = await QuestionModel.create({

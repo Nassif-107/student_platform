@@ -6,10 +6,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import mongoose from 'mongoose';
 import { getApp, cleanAll } from '../helpers.js';
-import { UserModel } from '../../src/modules/users/users.model.js';
 import { runCypher } from '../../src/config/neo4j.js';
 import { getRedis } from '../../src/config/redis.js';
 import { getInfluxQueryApi } from '../../src/config/influx.js';
+
+const getUserModel = () => mongoose.model('User');
 
 beforeEach(cleanAll);
 
@@ -43,6 +44,7 @@ describe('Registration flow — cross-DB', () => {
     expect(userId).toBeDefined();
 
     // ── 1. Verify MongoDB: user document created with correct fields ──
+    const UserModel = getUserModel();
     const mongoUser = await UserModel.findById(userId).lean();
     expect(mongoUser).not.toBeNull();
     expect(mongoUser!.email).toBe(payload.email);

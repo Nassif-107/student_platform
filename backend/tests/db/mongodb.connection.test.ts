@@ -5,10 +5,11 @@
  */
 import mongoose from 'mongoose';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { UserModel } from '../../src/modules/users/users.model.js';
-import { NotificationModel } from '../../src/modules/notifications/notifications.model.js';
-import { MaterialModel } from '../../src/modules/materials/materials.model.js';
 import { cleanMongo } from '../helpers.js';
+
+const getUserModel = () => mongoose.model('User');
+const getNotificationModel = () => mongoose.model('Notification');
+const getMaterialModel = () => mongoose.model('Material');
 
 beforeEach(cleanMongo);
 
@@ -18,6 +19,7 @@ describe('MongoDB', () => {
   });
 
   it('can create and read a document', async () => {
+    const UserModel = getUserModel();
     const user = await UserModel.create({
       email: 'mongo-test@university.ru',
       passwordHash: '$2b$12$fakehashvalue1234567890',
@@ -35,6 +37,7 @@ describe('MongoDB', () => {
   });
 
   it('.lean() returns a plain object, not a Mongoose document', async () => {
+    const UserModel = getUserModel();
     await UserModel.create({
       email: 'lean-test@university.ru',
       passwordHash: '$2b$12$fakehashvalue1234567890',
@@ -54,6 +57,7 @@ describe('MongoDB', () => {
   });
 
   it('text index works ($text search on users)', async () => {
+    const UserModel = getUserModel();
     await UserModel.create([
       {
         email: 'search1@university.ru',
@@ -81,6 +85,7 @@ describe('MongoDB', () => {
   });
 
   it('aggregation pipeline works (group + count)', async () => {
+    const UserModel = getUserModel();
     await UserModel.create([
       {
         email: 'agg1@university.ru',
@@ -123,6 +128,7 @@ describe('MongoDB', () => {
   });
 
   it('atomic $inc works correctly', async () => {
+    const UserModel = getUserModel();
     const user = await UserModel.create({
       email: 'inc-test@university.ru',
       passwordHash: '$2b$12$fakehashvalue1234567890',
@@ -152,6 +158,7 @@ describe('MongoDB', () => {
   });
 
   it('$addToSet prevents duplicates', async () => {
+    const UserModel = getUserModel();
     const user = await UserModel.create({
       email: 'addtoset@university.ru',
       passwordHash: '$2b$12$fakehashvalue1234567890',
@@ -174,6 +181,7 @@ describe('MongoDB', () => {
   });
 
   it('TTL index exists on notifications collection', async () => {
+    const NotificationModel = getNotificationModel();
     // Ensure the collection exists by inserting a document
     await NotificationModel.create({
       userId: new mongoose.Types.ObjectId(),
@@ -191,6 +199,7 @@ describe('MongoDB', () => {
   });
 
   it('compound indexes exist on materials (course.id + createdAt)', async () => {
+    const MaterialModel = getMaterialModel();
     // Ensure the collection exists
     const courseId = new mongoose.Types.ObjectId();
     const authorId = new mongoose.Types.ObjectId();

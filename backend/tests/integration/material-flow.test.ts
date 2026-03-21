@@ -5,9 +5,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import mongoose from 'mongoose';
 import { getApp, cleanAll, registerTestUser, authHeader } from '../helpers.js';
-import { MaterialModel } from '../../src/modules/materials/materials.model.js';
-import { CourseModel } from '../../src/modules/courses/courses.model.js';
 import { getRedis } from '../../src/config/redis.js';
+
+const getMaterialModel = () => mongoose.model('Material');
 
 beforeEach(cleanAll);
 
@@ -52,6 +52,7 @@ describe('Material lifecycle — cross-DB', () => {
 
     // ── 3. Create a material directly in MongoDB ──
     // (multipart upload is complex; we test the DB layer directly)
+    const MaterialModel = getMaterialModel();
     const material = await MaterialModel.create({
       title: 'Конспект лекции 1',
       course: { id: new mongoose.Types.ObjectId(courseId), title: 'Тестовый курс', code: 'MAT101' },

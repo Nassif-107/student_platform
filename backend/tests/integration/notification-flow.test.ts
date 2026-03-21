@@ -4,13 +4,19 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import mongoose from 'mongoose';
 import { cleanAll } from '../helpers.js';
-import { NotificationModel } from '../../src/modules/notifications/notifications.model.js';
-import {
-  createNotification,
-  getUnreadCount,
-  markOneRead,
-} from '../../src/modules/notifications/notifications.service.js';
 import { getRedis } from '../../src/config/redis.js';
+
+const getNotificationModel = () => mongoose.model('Notification');
+
+// Lazy-load the notification service to avoid triggering model re-registration
+// at import time. The service file imports NotificationModel from the model file.
+let _notifService: typeof import('../../src/modules/notifications/notifications.service.js') | null = null;
+async function getNotifService() {
+  if (!_notifService) {
+    _notifService = await import('../../src/modules/notifications/notifications.service.js');
+  }
+  return _notifService;
+}
 
 beforeEach(cleanAll);
 
@@ -18,6 +24,9 @@ describe('Notification flow — MongoDB + Redis', () => {
   const userId = new mongoose.Types.ObjectId().toString();
 
   it('createNotification creates MongoDB document and pushes to Redis', async () => {
+    const { createNotification } = await getNotifService();
+    const NotificationModel = getNotificationModel();
+
     await createNotification(
       userId,
       'MATERIAL_NEW',
@@ -52,6 +61,9 @@ describe('Notification flow — MongoDB + Redis', () => {
   });
 
   it('multiple notifications increment the unread count correctly', async () => {
+    const { createNotification, getUnreadCount } = await getNotifService();
+    const NotificationModel = getNotificationModel();
+
     await createNotification(userId, 'MATERIAL_NEW', 'Уведомление 1', 'Текст 1');
     await createNotification(userId, 'DEADLINE_REMINDER', 'Уведомление 2', 'Текст 2');
     await createNotification(userId, 'FRIEND_REQUEST', 'Уведомление 3', 'Текст 3');
@@ -64,6 +76,9 @@ describe('Notification flow — MongoDB + Redis', () => {
   });
 
   it('markOneRead decrements the Redis unread count', async () => {
+    const { createNotification, markOneRead } = await getNotifService();
+    const NotificationModel = getNotificationModel();
+
     await createNotification(userId, 'MATERIAL_NEW', 'Для чтения', 'Текст');
 
     const docs = await NotificationModel.find({ userId }).lean();
@@ -84,6 +99,9 @@ describe('Notification flow — MongoDB + Redis', () => {
   });
 
   it('unread count does not go below zero', async () => {
+    const { createNotification, markOneRead } = await getNotifService();
+    const NotificationModel = getNotificationModel();
+
     await createNotification(userId, 'MATERIAL_NEW', 'Единственное', 'Текст');
 
     const docs = await NotificationModel.find({ userId }).lean();
