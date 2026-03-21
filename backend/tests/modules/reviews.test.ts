@@ -123,7 +123,7 @@ describe('Reviews Module — /api/reviews', () => {
       expect(res.statusCode).toBe(409);
       const body = JSON.parse(res.body);
       expect(body.success).toBe(false);
-      expect(body.error.code).toBe('DUPLICATE_REVIEW');
+      expect(body.error.code).toBe('DUPLICATE');
     });
   });
 
