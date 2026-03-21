@@ -55,4 +55,4 @@ groupSchema.index({ 'members.userId': 1 });
 groupSchema.index({ type: 1 });
 groupSchema.index({ createdAt: -1 });
 
-export const GroupModel = mongoose.model<GroupDocument>('Group', groupSchema);
+export const GroupModel = (mongoose.models.Group as mongoose.Model<GroupDocument>) || mongoose.model<GroupDocument>('Group', groupSchema);

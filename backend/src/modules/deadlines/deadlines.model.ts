@@ -52,4 +52,4 @@ const deadlineSchema = new Schema<DeadlineDocument>(
 deadlineSchema.index({ 'course.id': 1, dueDate: 1 });
 deadlineSchema.index({ dueDate: 1 });
 
-export const DeadlineModel = mongoose.model<DeadlineDocument>('Deadline', deadlineSchema);
+export const DeadlineModel = (mongoose.models.Deadline as mongoose.Model<DeadlineDocument>) || mongoose.model<DeadlineDocument>('Deadline', deadlineSchema);

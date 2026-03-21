@@ -103,4 +103,4 @@ courseSchema.index(
   { weights: { title: 10, code: 5, tags: 3 } }
 );
 
-export const CourseModel = mongoose.model<CourseDocument>('Course', courseSchema);
+export const CourseModel = (mongoose.models.Course as mongoose.Model<CourseDocument>) || mongoose.model<CourseDocument>('Course', courseSchema);

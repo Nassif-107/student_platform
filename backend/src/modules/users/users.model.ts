@@ -133,4 +133,4 @@ userSchema.index(
   { name: 'user_search_text' }
 );
 
-export const UserModel = mongoose.model<UserDocument>('User', userSchema);
+export const UserModel = (mongoose.models.User as mongoose.Model<UserDocument>) || mongoose.model<UserDocument>('User', userSchema);

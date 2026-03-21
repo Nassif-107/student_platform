@@ -36,7 +36,5 @@ const commentSchema = new Schema<CommentDocument>(
 
 commentSchema.index({ 'target.type': 1, 'target.id': 1, createdAt: -1 });
 
-export const CommentModel = mongoose.model<CommentDocument>(
-  'Comment',
-  commentSchema
+export const CommentModel = (mongoose.models.Comment as mongoose.Model<CommentDocument>) || mongoose.model<CommentDocument>('Comment', commentSchema
 );

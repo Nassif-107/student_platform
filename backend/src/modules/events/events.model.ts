@@ -70,4 +70,4 @@ eventSchema.index({ date: 1, status: 1 });
 eventSchema.index({ tags: 1 });
 eventSchema.index({ type: 1, date: 1 });
 
-export const EventModel = mongoose.model<EventDocument>('Event', eventSchema);
+export const EventModel = (mongoose.models.Event as mongoose.Model<EventDocument>) || mongoose.model<EventDocument>('Event', eventSchema);

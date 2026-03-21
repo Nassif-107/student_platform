@@ -100,5 +100,5 @@ const answerSchema = new Schema<AnswerDocument>(
 answerSchema.index({ questionId: 1, votes: -1 });
 answerSchema.index({ questionId: 1, isAccepted: 1 });
 
-export const QuestionModel = mongoose.model<QuestionDocument>('Question', questionSchema);
-export const AnswerModel = mongoose.model<AnswerDocument>('Answer', answerSchema);
+export const QuestionModel = (mongoose.models.Question as mongoose.Model<QuestionDocument>) || mongoose.model<QuestionDocument>('Question', questionSchema);
+export const AnswerModel = (mongoose.models.Answer as mongoose.Model<AnswerDocument>) || mongoose.model<AnswerDocument>('Answer', answerSchema);

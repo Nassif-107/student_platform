@@ -57,7 +57,4 @@ professorSchema.index(
   { weights: { 'name.last': 10, 'name.first': 5 } }
 );
 
-export const ProfessorModel = mongoose.model<ProfessorDocument>(
-  'Professor',
-  professorSchema
-);
+export const ProfessorModel = (mongoose.models.Professor as mongoose.Model<ProfessorDocument>) || mongoose.model<ProfessorDocument>('Professor', professorSchema);

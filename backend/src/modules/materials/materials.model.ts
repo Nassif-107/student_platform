@@ -95,7 +95,4 @@ materialSchema.index({ 'stats.views': -1 });
 materialSchema.index({ title: 'text', description: 'text', tags: 'text' });
 materialSchema.index({ tags: 1 });
 
-export const MaterialModel = mongoose.model<MaterialDocument>(
-  'Material',
-  materialSchema
-);
+export const MaterialModel = (mongoose.models.Material as mongoose.Model<MaterialDocument>) || mongoose.model<MaterialDocument>('Material', materialSchema);

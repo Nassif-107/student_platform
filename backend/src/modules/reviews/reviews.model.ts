@@ -65,4 +65,4 @@ reviewSchema.index(
 );
 reviewSchema.index({ likes: -1 });
 
-export const ReviewModel = mongoose.model<ReviewDocument>('Review', reviewSchema);
+export const ReviewModel = (mongoose.models.Review as mongoose.Model<ReviewDocument>) || mongoose.model<ReviewDocument>('Review', reviewSchema);

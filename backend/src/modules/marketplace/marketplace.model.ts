@@ -74,4 +74,4 @@ listingSchema.index(
   { weights: { title: 10, description: 5 } }
 );
 
-export const ListingModel = mongoose.model<ListingDocument>('Listing', listingSchema);
+export const ListingModel = (mongoose.models.Listing as mongoose.Model<ListingDocument>) || mongoose.model<ListingDocument>('Listing', listingSchema);
