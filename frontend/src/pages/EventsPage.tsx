@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { PageTransition } from '@/components/shared/PageTransition'
-import { InfiniteScrollTrigger } from '@/components/shared/InfiniteScrollTrigger'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -148,33 +147,16 @@ export function EventsPage() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [view, setView] = useState<'grid' | 'list'>('grid')
-  const [page, setPage] = useState(1)
-  const [accumulated, setAccumulated] = useState<Event[]>([])
   const [dialogOpen, setDialogOpen] = useState(false)
   const [togglingEventId, setTogglingEventId] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
   const handleSearch = useCallback((v: string) => {
     setSearch(v)
-    setPage(1)
-    setAccumulated([])
-  }, [])
-
-  // Reset pagination when filters change
-  useEffect(() => {
-    setPage(1)
-    setAccumulated([])
-  }, [typeFilter])
-
-  // Reset on mount
-  useEffect(() => {
-    setPage(1)
-    setAccumulated([])
   }, [])
 
   const params: EventsParams = {
-    page,
-    limit: DEFAULT_PAGE_SIZE,
+    limit: 100,
     search: search || undefined,
     type: typeFilter !== 'all' ? (typeFilter as EventsParams['type']) : undefined,
     sortBy: 'date',
@@ -185,17 +167,6 @@ export function EventsPage() {
     queryKey: ['events', search, typeFilter, page],
     queryFn: () => eventsService.getEvents(params),
   })
-
-  useEffect(() => {
-    if (data?.items) {
-      setAccumulated((prev) => {
-        if (page === 1) return data.items
-        const existingIds = new Set(prev.map((e) => e.id))
-        const newItems = data.items.filter((item) => !existingIds.has(item.id))
-        return [...prev, ...newItems]
-      })
-    }
-  }, [data, page])
 
   const toggleMutation = useMutation({
     mutationFn: (id: string) => eventsService.registerForEvent(id),
@@ -246,9 +217,7 @@ export function EventsPage() {
     onError: () => toast({ title: 'Ошибка создания события', variant: 'error' }),
   })
 
-  const events = accumulated
-  const hasMore = data ? page < (data.totalPages ?? Math.ceil((data.total ?? 0) / DEFAULT_PAGE_SIZE)) : false
-  const handleLoadMore = useCallback(() => setPage((p) => p + 1), [])
+  const events = data?.items ?? []
 
   return (
     <PageTransition className="space-y-6">
@@ -373,11 +342,6 @@ export function EventsPage() {
         )}
       </AnimatePresence>
 
-      <InfiniteScrollTrigger
-        onLoadMore={handleLoadMore}
-        hasMore={hasMore}
-        isLoading={isFetching}
-      />
     </PageTransition>
   )
 }

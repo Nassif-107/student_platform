@@ -1,173 +1,95 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
 import { GraduationCap, Search, Star } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { Skeleton } from '@/components/ui/skeleton'
+import { PageTransition } from '@/components/shared/PageTransition'
 import { professorsService, type Professor } from '@/services/professors.service'
 import { useDebounce } from '@/hooks/useDebounce'
-import { PageTransition } from '@/components/shared/PageTransition'
 import { ROUTES } from '@/lib/constants'
-
-const container = { show: { transition: { staggerChildren: 0.05 } } }
-const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }
 
 function ProfessorSkeleton() {
   return (
-    <div className="flex items-center gap-4 rounded-xl border p-4">
-      <Skeleton className="h-14 w-14 rounded-full" />
+    <div className="flex items-center gap-4 rounded-xl border border-border/40 bg-card p-4">
+      <div className="h-12 w-12 rounded-full skeleton-shimmer" />
       <div className="flex-1 space-y-2">
-        <Skeleton className="h-5 w-40" />
-        <Skeleton className="h-3 w-56" />
-        <div className="flex gap-2">
-          <Skeleton className="h-5 w-16 rounded-full" />
-          <Skeleton className="h-5 w-16 rounded-full" />
-        </div>
+        <div className="h-4 w-40 rounded skeleton-shimmer" />
+        <div className="h-3 w-28 rounded skeleton-shimmer" />
       </div>
-      <Skeleton className="h-6 w-14" />
+      <div className="h-4 w-12 rounded skeleton-shimmer" />
     </div>
   )
 }
 
 export function ProfessorsPage() {
   const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
-  const [accumulated, setAccumulated] = useState<Professor[]>([])
   const debouncedSearch = useDebounce(search, 300)
-  const prevSearch = useRef(debouncedSearch)
 
-  useEffect(() => {
-    if (prevSearch.current !== debouncedSearch) {
-      setPage(1)
-      setAccumulated([])
-      prevSearch.current = debouncedSearch
-    }
-  }, [debouncedSearch])
-
-  useEffect(() => {
-    setPage(1)
-    setAccumulated([])
-  }, [])
-
-  const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['professors', debouncedSearch, page],
-    queryFn: () =>
-      professorsService.getProfessors({
-        search: debouncedSearch || undefined,
-        sortBy: 'averageRating',
-        sortOrder: 'desc',
-        page,
-        limit: 20,
-      }),
+  const { data, isLoading } = useQuery({
+    queryKey: ['professors', debouncedSearch],
+    queryFn: () => professorsService.getProfessors({
+      search: debouncedSearch || undefined,
+      limit: 100,
+    }),
   })
 
-  useEffect(() => {
-    if (data?.items) {
-      setAccumulated((prev) => {
-        if (page === 1) return data.items
-        const existingIds = new Set(prev.map((p) => p.id))
-        const newItems = data.items.filter((item) => !existingIds.has(item.id))
-        return [...prev, ...newItems]
-      })
-    }
-  }, [data, page])
-
-  const hasMore = data ? page < (data.totalPages ?? Math.ceil((data.total ?? 0) / 20)) : false
+  const professors = data?.items ?? []
 
   return (
-    <PageTransition>
-      <div className="space-y-6">
+    <PageTransition className="space-y-6">
+      <div>
         <h1 className="text-2xl font-bold text-foreground">Преподаватели</h1>
-        <p className="text-muted-foreground">
-          Рейтинг и отзывы о преподавателях
-        </p>
+        <p className="text-muted-foreground">Рейтинг и отзывы</p>
+      </div>
 
-        <div className="relative">
+      <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
+        <input
+          type="text"
+          placeholder="Поиск преподавателей..."
+          aria-label="Поиск преподавателей"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Поиск по имени или кафедре..."
-          className="pl-10"
+          className="h-10 w-full rounded-lg border border-input bg-background pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 
       {isLoading ? (
         <div className="space-y-3">
-          {Array.from({ length: 6 }, (_, i) => (
+          {Array.from({ length: 5 }).map((_, i) => (
             <ProfessorSkeleton key={i} />
           ))}
         </div>
-      ) : !accumulated.length ? (
+      ) : !professors.length ? (
         <div className="flex flex-col items-center py-20">
           <GraduationCap className="h-12 w-12 text-muted-foreground/50" />
-          <p className="mt-4 text-muted-foreground">
-            {search ? 'Преподаватели не найдены' : 'Преподаватели пока не добавлены'}
-          </p>
+          <p className="mt-4 text-muted-foreground">Преподаватели не найдены</p>
         </div>
       ) : (
-        <>
-          <motion.div
-            variants={container}
-            initial="hidden"
-            animate="show"
-            className="space-y-3"
-          >
-            {accumulated.map((prof: Professor) => (
-              <motion.div key={prof.id} variants={item}>
-                <Link to={ROUTES.PROFESSOR_DETAIL(prof.id)}>
-                  <div className="flex items-center gap-4 rounded-xl border bg-card p-4 transition-all duration-200 hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5">
-                    <Avatar className="h-14 w-14">
-                      {prof.avatarUrl && <AvatarImage src={prof.avatarUrl} alt={prof.lastName} />}
-                      <AvatarFallback className="text-lg">
-                        {prof.lastName?.[0]}{prof.firstName?.[0]}
-                      </AvatarFallback>
-                    </Avatar>
-
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-foreground">
-                        {prof.lastName} {prof.firstName} {prof.middleName ?? ''}
-                      </p>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {prof.position} · {prof.department}
-                      </p>
-                      {prof.courseCount > 0 && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {prof.courseCount} курсов
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                        <span className="text-lg font-bold text-foreground">
-                          {(prof.averageRating ?? 0).toFixed(1)}
-                        </span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {prof.reviewCount} отзывов
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {hasMore && (
-            <div className="flex justify-center pt-4">
-              <Button variant="outline" onClick={() => setPage((p) => p + 1)} disabled={isFetching}>
-                {isFetching ? 'Загрузка...' : 'Загрузить ещё'}
-              </Button>
-            </div>
-          )}
-        </>
+        <div className="space-y-3">
+          {professors.map((prof: Professor) => (
+            <Link key={prof.id} to={ROUTES.PROFESSOR_DETAIL(prof.id)}>
+              <div className="flex items-center gap-4 rounded-xl border bg-card p-4 transition-all duration-200 hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
+                  {prof.firstName?.[0]}{prof.lastName?.[0]}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-foreground truncate">
+                    {prof.lastName} {prof.firstName} {prof.middleName ?? ''}
+                  </h3>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {prof.department} &middot; {prof.position}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 text-sm">
+                  <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                  <span className="font-medium">{(prof.averageRating ?? 0).toFixed(1)}</span>
+                  <span className="text-muted-foreground text-xs">({prof.reviewCount})</span>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
       )}
-      </div>
     </PageTransition>
   )
 }
