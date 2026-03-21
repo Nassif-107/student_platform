@@ -9,7 +9,7 @@ export const reviewQuerySchema = z.object({
   authorId: z.string().min(1).optional(),
   sort: z.enum(['newest', 'helpful']).default('newest'),
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(50).default(20),
+  limit: z.coerce.number().int().positive().max(100).default(20),
 });
 
 export type ReviewQueryInput = z.infer<typeof reviewQuerySchema>;

@@ -9,7 +9,7 @@ export const materialQuerySchema = z.object({
   search: z.string().optional(),
   sort: z.enum(['newest', 'popular', 'downloads', 'likes']).default('newest'),
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(50).default(20),
+  limit: z.coerce.number().int().positive().max(100).default(20),
 });
 
 export type MaterialQueryInput = z.infer<typeof materialQuerySchema>;
