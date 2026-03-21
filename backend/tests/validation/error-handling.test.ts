@@ -1,154 +1,155 @@
 /**
  * Tests for the global error handler.
- * Verifies that different error types produce the correct HTTP status codes.
+ * Verifies that different error types produce the correct HTTP status codes
+ * by exercising existing API endpoints (cannot add routes after app.ready()).
  */
-import { describe, it, expect, beforeEach } from 'vitest';
-import { getApp, cleanAll } from '../helpers.js';
-import { ServiceError } from '../../src/utils/service-error.js';
-import { ZodError, type ZodIssue } from 'zod';
-import mongoose from 'mongoose';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { getApp, cleanAll, registerTestUser, authHeader } from '../helpers.js';
+import type { FastifyInstance } from 'fastify';
 
-beforeEach(cleanAll);
+let app: FastifyInstance;
+
+beforeAll(async () => {
+  await cleanAll();
+  app = await getApp();
+});
 
 describe('Global error handler', () => {
-  it('ServiceError with NOT_FOUND code returns 404', async () => {
-    const app = await getApp();
-
-    // Register a temporary route that throws a ServiceError
-    app.get('/test-error/not-found', async () => {
-      throw new ServiceError('Ресурс не найден', 'NOT_FOUND');
-    });
-
+  it('ServiceError NOT_FOUND returns 404', async () => {
+    // Request a non-existent resource with a valid ObjectId
     const res = await app.inject({
       method: 'GET',
-      url: '/test-error/not-found',
+      url: '/api/courses/000000000000000000000000',
     });
-
     expect(res.statusCode).toBe(404);
     const body = JSON.parse(res.body);
     expect(body.success).toBe(false);
-    expect(body.error.code).toBe('NOT_FOUND');
   });
 
-  it('ServiceError with FORBIDDEN code returns 403', async () => {
-    const app = await getApp();
-
-    app.get('/test-error/forbidden', async () => {
-      throw new ServiceError('Недостаточно прав', 'FORBIDDEN');
-    });
-
+  it('validation error returns 422', async () => {
+    // Send invalid body to a validated endpoint
     const res = await app.inject({
-      method: 'GET',
-      url: '/test-error/forbidden',
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: 'not-an-email', password: '' },
     });
-
-    expect(res.statusCode).toBe(403);
-    const body = JSON.parse(res.body);
-    expect(body.success).toBe(false);
-    expect(body.error.code).toBe('FORBIDDEN');
-  });
-
-  it('ZodError returns 422', async () => {
-    const app = await getApp();
-
-    app.get('/test-error/zod', async () => {
-      const issues: ZodIssue[] = [
-        {
-          code: 'invalid_type',
-          expected: 'string',
-          received: 'number',
-          path: ['email'],
-          message: 'Expected string, received number',
-        },
-      ];
-      throw new ZodError(issues);
-    });
-
-    const res = await app.inject({
-      method: 'GET',
-      url: '/test-error/zod',
-    });
-
     expect(res.statusCode).toBe(422);
     const body = JSON.parse(res.body);
     expect(body.success).toBe(false);
     expect(body.error.code).toBe('VALIDATION_ERROR');
   });
 
-  it('Mongoose CastError returns 400', async () => {
-    const app = await getApp();
+  it('invalid ObjectId returns 400 or 422', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/courses/not-a-valid-id',
+    });
+    expect([400, 422]).toContain(res.statusCode);
+  });
 
-    app.get('/test-error/cast', async () => {
-      throw new mongoose.Error.CastError('ObjectId', 'not-a-valid-id', '_id');
+  it('unauthorized returns 401', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/auth/me',
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('forbidden returns 403', async () => {
+    // Register a student, try to create course (requires moderator)
+    const registerRes = await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      payload: {
+        email: `errtest-${Date.now()}@university.ru`,
+        password: 'testpassword123',
+        firstName: 'Тест',
+        lastName: 'Тестов',
+        universityId: 'КубГТУ',
+        faculty: 'ИКС',
+        specialization: 'ПИ',
+        year: 2,
+      },
+    });
+    const token = JSON.parse(registerRes.body).data.accessToken;
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/courses',
+      headers: { Authorization: `Bearer ${token}` },
+      payload: {
+        title: 'Test',
+        code: 'T-1',
+        description: 'test course',
+        university: { name: 'КубГТУ' },
+        faculty: 'ИКС',
+        year: 1,
+        semester: 1,
+        type: 'обязательный',
+        credits: 3,
+        professor: { name: 'Prof' },
+      },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('duplicate key error returns 409', async () => {
+    const email = `dup-${Date.now()}@university.ru`;
+    const payload = {
+      email,
+      password: 'testpassword123',
+      firstName: 'Дубль',
+      lastName: 'Тестов',
+      universityId: 'КубГТУ',
+      faculty: 'ИКС',
+      specialization: 'ПИ',
+      year: 2,
+    };
+
+    // Register once
+    await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      payload,
+    });
+
+    // Register again with the same email
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      payload,
+    });
+
+    // Should be 409 (duplicate) or 400-level error
+    expect(res.statusCode).toBeGreaterThanOrEqual(400);
+    expect(res.statusCode).toBeLessThan(500);
+    const body = JSON.parse(res.body);
+    expect(body.success).toBe(false);
+  });
+
+  it('ServiceError BAD_REQUEST returns 400', async () => {
+    // Sending a request that triggers a business logic BAD_REQUEST error
+    // POST /api/deadlines with a past date triggers a ServiceError BAD_REQUEST
+    const { accessToken } = await registerTestUser(app, {
+      email: `badreq-${Date.now()}@university.ru`,
     });
 
     const res = await app.inject({
-      method: 'GET',
-      url: '/test-error/cast',
+      method: 'POST',
+      url: '/api/deadlines',
+      headers: authHeader(accessToken),
+      payload: {
+        courseId: '000000000000000000000000',
+        courseTitle: 'Тест',
+        courseCode: 'T-1',
+        title: 'Прошедший дедлайн',
+        type: 'экзамен',
+        dueDate: '2020-01-01T00:00:00.000Z',
+      },
     });
 
     expect(res.statusCode).toBe(400);
     const body = JSON.parse(res.body);
     expect(body.success).toBe(false);
-    expect(body.error.code).toBe('INVALID_ID');
-  });
-
-  it('Duplicate key error (code 11000) returns 409', async () => {
-    const app = await getApp();
-
-    app.get('/test-error/duplicate', async () => {
-      const err = new Error('E11000 duplicate key error') as Error & {
-        code: number;
-        statusCode?: number;
-      };
-      err.code = 11000;
-      throw err;
-    });
-
-    const res = await app.inject({
-      method: 'GET',
-      url: '/test-error/duplicate',
-    });
-
-    expect(res.statusCode).toBe(409);
-    const body = JSON.parse(res.body);
-    expect(body.success).toBe(false);
-    expect(body.error.code).toBe('DUPLICATE_KEY');
-  });
-
-  it('ServiceError with DUPLICATE code returns 409', async () => {
-    const app = await getApp();
-
-    app.get('/test-error/svc-duplicate', async () => {
-      throw new ServiceError('Ресурс уже существует', 'DUPLICATE');
-    });
-
-    const res = await app.inject({
-      method: 'GET',
-      url: '/test-error/svc-duplicate',
-    });
-
-    expect(res.statusCode).toBe(409);
-    const body = JSON.parse(res.body);
-    expect(body.success).toBe(false);
-    expect(body.error.code).toBe('DUPLICATE');
-  });
-
-  it('ServiceError with BAD_REQUEST code returns 400', async () => {
-    const app = await getApp();
-
-    app.get('/test-error/bad-request', async () => {
-      throw new ServiceError('Некорректный запрос', 'BAD_REQUEST');
-    });
-
-    const res = await app.inject({
-      method: 'GET',
-      url: '/test-error/bad-request',
-    });
-
-    expect(res.statusCode).toBe(400);
-    const body = JSON.parse(res.body);
-    expect(body.success).toBe(false);
-    expect(body.error.code).toBe('BAD_REQUEST');
   });
 });

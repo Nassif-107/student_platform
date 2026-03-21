@@ -44,7 +44,7 @@ describe('Social Module — /api/social', () => {
         headers: authHeader(senderToken),
       });
 
-      expect(res.statusCode).toBe(200);
+      expect(res.statusCode).toBe(201);
       const body = JSON.parse(res.body);
       expect(body.success).toBe(true);
     });

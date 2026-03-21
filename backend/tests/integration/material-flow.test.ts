@@ -27,11 +27,19 @@ describe('Material lifecycle — cross-DB', () => {
         { $set: { role: 'moderator' } },
       );
 
+    // Re-login to get a new token with the moderator role
+    const loginRes = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: user.email, password: 'testpassword123' },
+    });
+    const modToken = JSON.parse(loginRes.body).data.accessToken as string;
+
     // ── 2. Create a course ──
     const courseRes = await app.inject({
       method: 'POST',
       url: '/api/courses',
-      headers: authHeader(accessToken),
+      headers: authHeader(modToken),
       payload: {
         title: 'Тестовый курс для материалов',
         code: 'MAT101',
@@ -48,7 +56,7 @@ describe('Material lifecycle — cross-DB', () => {
 
     expect(courseRes.statusCode).toBe(201);
     const courseBody = JSON.parse(courseRes.body);
-    const courseId = courseBody.data.course._id;
+    const courseId = courseBody.data._id;
 
     // ── 3. Create a material directly in MongoDB ──
     // (multipart upload is complex; we test the DB layer directly)

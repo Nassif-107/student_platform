@@ -135,7 +135,7 @@ describe('Deadlines Module — /api/deadlines', () => {
     it('confirms a deadline', async () => {
       const app = await getApp();
       const { courseId } = await createTestCourse(app);
-      const { accessToken } = await registerTestUser(app, {
+      const { accessToken: creatorToken } = await registerTestUser(app, {
         email: 'dl-confirmer@university.ru',
       });
 
@@ -145,7 +145,7 @@ describe('Deadlines Module — /api/deadlines', () => {
       const createRes = await app.inject({
         method: 'POST',
         url: '/api/deadlines',
-        headers: authHeader(accessToken),
+        headers: authHeader(creatorToken),
         payload: {
           courseId,
           courseTitle: 'Физика',
@@ -158,10 +158,15 @@ describe('Deadlines Module — /api/deadlines', () => {
 
       const deadlineId = JSON.parse(createRes.body).data._id as string;
 
+      // Use a different user to confirm (creator is auto-confirmed on creation)
+      const { accessToken: confirmerToken } = await registerTestUser(app, {
+        email: 'dl-other-confirmer@university.ru',
+      });
+
       const res = await app.inject({
         method: 'POST',
         url: `/api/deadlines/${deadlineId}/confirm`,
-        headers: authHeader(accessToken),
+        headers: authHeader(confirmerToken),
       });
 
       expect(res.statusCode).toBe(200);

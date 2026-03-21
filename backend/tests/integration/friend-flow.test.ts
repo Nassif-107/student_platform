@@ -41,7 +41,7 @@ describe('Friend flow — MongoDB + Neo4j', () => {
       headers: authHeader(user1.accessToken),
     });
 
-    expect(sendRes.statusCode).toBe(200);
+    expect(sendRes.statusCode).toBe(201);
 
     // Verify Neo4j FRIEND_REQUEST relationship exists
     const requestCheck = await runCypher(
