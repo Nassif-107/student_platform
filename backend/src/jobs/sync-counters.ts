@@ -1,6 +1,6 @@
+import mongoose from 'mongoose';
 import { getRedis } from '../config/redis.js';
 import { logger } from '../utils/logger.js';
-import { MaterialModel } from '../modules/materials/materials.model.js';
 
 /**
  * Background job: flushes Redis view/download counters to MongoDB.
@@ -44,7 +44,7 @@ async function syncMaterialCounters(): Promise<void> {
         if (isNaN(count) || count <= 0) continue;
 
         const field = counterType === 'views' ? 'stats.views' : 'stats.downloads';
-        await MaterialModel.findByIdAndUpdate(materialId, {
+        await mongoose.model('Material').findByIdAndUpdate(materialId, {
           $inc: { [field]: count },
         });
 
