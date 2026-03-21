@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth.store'
@@ -34,19 +34,58 @@ async function tryRefreshToken(): Promise<string | null> {
   return null
 }
 
+// Singleton socket — persists across component remounts
+let globalSocket: Socket | null = null
+let globalHeartbeat: ReturnType<typeof setInterval> | null = null
+let connectedToken: string | null = null
+
 export function useSocket() {
-  const socketRef = useRef<Socket | null>(null)
-  const { isAuthenticated, accessToken } = useAuthStore()
-  const { increment } = useNotificationStore()
+  const socketRef = useRef<Socket | null>(globalSocket)
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const accessToken = useAuthStore((s) => s.accessToken)
+  const increment = useNotificationStore((s) => s.increment)
   const queryClient = useQueryClient()
 
+  // Stable callback refs so the effect doesn't re-run on every render
+  const incrementRef = useRef(increment)
+  incrementRef.current = increment
+  const queryClientRef = useRef(queryClient)
+  queryClientRef.current = queryClient
+
+  const handleNotification = useCallback(() => {
+    incrementRef.current()
+    queryClientRef.current.invalidateQueries({ queryKey: ['notifications'] })
+  }, [])
+
   useEffect(() => {
+    // Not authenticated — disconnect if connected
     if (!isAuthenticated || !accessToken) {
-      if (socketRef.current) {
-        socketRef.current.disconnect()
+      if (globalSocket) {
+        globalSocket.disconnect()
+        globalSocket = null
         socketRef.current = null
+        connectedToken = null
+        if (globalHeartbeat) {
+          clearInterval(globalHeartbeat)
+          globalHeartbeat = null
+        }
       }
       return
+    }
+
+    // Already connected with the same token — skip
+    if (globalSocket?.connected && connectedToken === accessToken) {
+      socketRef.current = globalSocket
+      return
+    }
+
+    // Token changed — disconnect old socket
+    if (globalSocket) {
+      globalSocket.disconnect()
+      if (globalHeartbeat) {
+        clearInterval(globalHeartbeat)
+        globalHeartbeat = null
+      }
     }
 
     const socket = io(SOCKET_URL, {
@@ -58,49 +97,45 @@ export function useSocket() {
     })
 
     socket.on('connect', () => {
-      if (import.meta.env.DEV) console.log('[Socket] Подключено к серверу')
+      if (import.meta.env.DEV) console.log('[Socket] Подключено')
     })
 
     socket.on('disconnect', (reason) => {
-      if (import.meta.env.DEV) console.log('[Socket] Отключено:', reason)
+      if (import.meta.env.DEV && reason !== 'io client disconnect') {
+        console.log('[Socket] Отключено:', reason)
+      }
     })
 
     socket.on('connect_error', async (error) => {
       if (error.message.includes('expired') || error.message.includes('Token')) {
-        if (import.meta.env.DEV) console.log('[Socket] Токен истёк, обновляем...')
         const newToken = await tryRefreshToken()
         if (newToken) {
           socket.auth = { token: newToken }
+          connectedToken = newToken
           socket.connect()
         } else {
-          if (import.meta.env.DEV) console.error('[Socket] Не удалось обновить токен')
           socket.disconnect()
         }
-      } else {
-        if (import.meta.env.DEV) console.error('[Socket] Ошибка подключения:', error.message)
       }
     })
 
-    socket.on('notification', () => {
-      increment()
-      queryClient.invalidateQueries({ queryKey: ['notifications'] })
-    })
+    socket.on('notification', handleNotification)
 
-    // Heartbeat: keep presence alive (backend uses 2min TTL)
-    const heartbeatInterval = setInterval(() => {
-      if (socket.connected) {
-        socket.emit('heartbeat')
-      }
-    }, 60_000) // every 60s
+    // Heartbeat for presence
+    globalHeartbeat = setInterval(() => {
+      if (socket.connected) socket.emit('heartbeat')
+    }, 60_000)
 
+    globalSocket = socket
     socketRef.current = socket
+    connectedToken = accessToken
 
+    // Only disconnect on full unmount (logout), not on route changes
     return () => {
-      clearInterval(heartbeatInterval)
-      socket.disconnect()
-      socketRef.current = null
+      // Don't disconnect here — the socket is global
+      // It only disconnects when auth changes (handled above)
     }
-  }, [isAuthenticated, accessToken, increment, queryClient])
+  }, [isAuthenticated, accessToken, handleNotification])
 
   return socketRef.current
 }
