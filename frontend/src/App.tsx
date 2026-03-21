@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { AnimatePresence } from 'framer-motion'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { Layout } from '@/components/layout/Layout'
@@ -149,62 +148,6 @@ const queryClient = new QueryClient({
   },
 })
 
-function AnimatedRoutes() {
-  const location = useLocation()
-
-  return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route path="/auth/login" element={<LoginPage />} />
-        <Route path="/auth/register" element={<RegisterPage />} />
-        <Route element={<ProtectedLayout />}>
-          <Route index element={<HomePage />} />
-          <Route path="/profile/edit" element={<EditProfilePage />} />
-          <Route path="/profile/:id" element={<ProfilePage />} />
-          <Route path="/courses" element={<CoursesPage />} />
-          <Route path="/courses/:id" element={<CourseDetailPage />} />
-          <Route path="/professors" element={<ProfessorsPage />} />
-          <Route
-            path="/professors/:id"
-            element={<ProfessorDetailPage />}
-          />
-          <Route path="/materials" element={<MaterialsPage />} />
-          <Route
-            path="/materials/upload"
-            element={<MaterialUploadPage />}
-          />
-          <Route
-            path="/materials/:id"
-            element={<MaterialDetailPage />}
-          />
-          <Route path="/forum" element={<ForumPage />} />
-          <Route path="/forum/ask" element={<AskQuestionPage />} />
-          <Route path="/forum/:id" element={<QuestionDetailPage />} />
-          <Route path="/groups" element={<GroupsPage />} />
-          <Route path="/groups/find" element={<FindTeamPage />} />
-          <Route path="/groups/:id" element={<GroupDetailPage />} />
-          <Route path="/deadlines" element={<DeadlinesPage />} />
-          <Route path="/marketplace" element={<MarketplacePage />} />
-          <Route path="/marketplace/new" element={<NewListingPage />} />
-          <Route
-            path="/marketplace/:id"
-            element={<ListingDetailPage />}
-          />
-          <Route path="/events" element={<EventsPage />} />
-          <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/friends" element={<FriendsPage />} />
-          <Route
-            path="/notifications"
-            element={<NotificationsPage />}
-          />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Route>
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-    </AnimatePresence>
-  )
-}
-
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -213,7 +156,38 @@ export function App() {
           <ToastProvider>
             <ErrorBoundary>
             <Suspense fallback={<LoadingScreen />}>
-              <AnimatedRoutes />
+              <Routes>
+                <Route path="/auth/login" element={<LoginPage />} />
+                <Route path="/auth/register" element={<RegisterPage />} />
+                <Route element={<ProtectedLayout />}>
+                  <Route index element={<HomePage />} />
+                  <Route path="/profile/edit" element={<EditProfilePage />} />
+                  <Route path="/profile/:id" element={<ProfilePage />} />
+                  <Route path="/courses" element={<CoursesPage />} />
+                  <Route path="/courses/:id" element={<CourseDetailPage />} />
+                  <Route path="/professors" element={<ProfessorsPage />} />
+                  <Route path="/professors/:id" element={<ProfessorDetailPage />} />
+                  <Route path="/materials" element={<MaterialsPage />} />
+                  <Route path="/materials/upload" element={<MaterialUploadPage />} />
+                  <Route path="/materials/:id" element={<MaterialDetailPage />} />
+                  <Route path="/forum" element={<ForumPage />} />
+                  <Route path="/forum/ask" element={<AskQuestionPage />} />
+                  <Route path="/forum/:id" element={<QuestionDetailPage />} />
+                  <Route path="/groups" element={<GroupsPage />} />
+                  <Route path="/groups/find" element={<FindTeamPage />} />
+                  <Route path="/groups/:id" element={<GroupDetailPage />} />
+                  <Route path="/deadlines" element={<DeadlinesPage />} />
+                  <Route path="/marketplace" element={<MarketplacePage />} />
+                  <Route path="/marketplace/new" element={<NewListingPage />} />
+                  <Route path="/marketplace/:id" element={<ListingDetailPage />} />
+                  <Route path="/events" element={<EventsPage />} />
+                  <Route path="/analytics" element={<AnalyticsPage />} />
+                  <Route path="/friends" element={<FriendsPage />} />
+                  <Route path="/notifications" element={<NotificationsPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                </Route>
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
             </Suspense>
             </ErrorBoundary>
             <Toaster />

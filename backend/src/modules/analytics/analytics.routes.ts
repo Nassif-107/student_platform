@@ -16,7 +16,7 @@ const idParamSchema = z.object({
 });
 
 const limitQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(50).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
 });
 
 export const analyticsRoutes: FastifyPluginAsync = async (app) => {

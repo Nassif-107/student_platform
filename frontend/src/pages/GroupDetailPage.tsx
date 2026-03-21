@@ -24,7 +24,7 @@ const TYPE_LABELS: Record<string, string> = {
   study: 'Учёба', project: 'Проект', exam_prep: 'Подготовка к экзамену',
 }
 
-const container = { show: { transition: { staggerChildren: 0.04 } } }
+const container = { show: { transition: { staggerChildren: 0.02 } } }
 const item = { hidden: { opacity: 0, x: -8 }, show: { opacity: 1, x: 0 } }
 
 export function GroupDetailPage() {

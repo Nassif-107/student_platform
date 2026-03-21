@@ -68,7 +68,7 @@ const GRADIENT_PLACEHOLDERS = [
   'from-pink-500 to-rose-600',
 ]
 
-const container = { show: { transition: { staggerChildren: 0.06 } } }
+const container = { show: { transition: { staggerChildren: 0.02 } } }
 const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }
 
 const eventSchema = z.object({

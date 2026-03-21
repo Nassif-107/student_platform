@@ -24,7 +24,7 @@ import { formatRelative, formatDate } from '@/lib/format-date'
 import { ROUTES } from '@/lib/constants'
 import { cn } from '@/lib/cn'
 
-const container = { show: { transition: { staggerChildren: 0.07 } } }
+const container = { show: { transition: { staggerChildren: 0.02 } } }
 const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0 } }
 
 function getDeadlineUrgencyColor(dueDate: string) {

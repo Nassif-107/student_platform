@@ -22,9 +22,12 @@ const courseQuerySchema = z.object({
   year: z.coerce.number().int().min(1).max(6).optional(),
   semester: z.coerce.number().int().min(1).max(2).optional(),
   search: z.string().optional(),
-  sort: z.enum(['-rating', '-createdAt', 'title']).optional(),
+  sort: z.string().optional(),
+  sortBy: z.string().optional(),
+  sortOrder: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  university: z.string().optional(),
 });
 
 const idParamSchema = z.object({
@@ -33,7 +36,7 @@ const idParamSchema = z.object({
 
 const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(50).default(20),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
 const createCourseSchema = z.object({

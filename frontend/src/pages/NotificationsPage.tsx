@@ -52,7 +52,7 @@ const NOTIFICATION_COLORS: Record<string, string> = {
   SYSTEM: 'text-muted-foreground bg-muted',
 }
 
-const container = { show: { transition: { staggerChildren: 0.04 } } }
+const container = { show: { transition: { staggerChildren: 0.02 } } }
 const item = {
   hidden: { opacity: 0, x: -20 },
   show: { opacity: 1, x: 0, transition: { duration: 0.25 } },

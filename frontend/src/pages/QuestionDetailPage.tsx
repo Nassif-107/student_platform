@@ -33,7 +33,7 @@ const answerSchema = z.object({
 type AnswerForm = z.infer<typeof answerSchema>
 type AnswerSort = 'votes' | 'date'
 
-const container = { show: { transition: { staggerChildren: 0.06 } } }
+const container = { show: { transition: { staggerChildren: 0.02 } } }
 const item = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }
 
 export function QuestionDetailPage() {

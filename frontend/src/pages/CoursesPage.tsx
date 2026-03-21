@@ -95,7 +95,7 @@ export function CoursesPage() {
                 key={course.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: (index % 20) * 0.05 }}
+                transition={{ delay: (index % 20) * 0.015 }}
               >
                 <Link
                   to={ROUTES.COURSE_DETAIL(course.id)}

@@ -24,7 +24,7 @@ import { cn } from '@/lib/cn'
 type StatusFilter = 'all' | 'open' | 'solved'
 type SortOption = 'new' | 'popular' | 'unanswered'
 
-const container = { show: { transition: { staggerChildren: 0.05 } } }
+const container = { show: { transition: { staggerChildren: 0.02 } } }
 const item = {
   hidden: { opacity: 0, y: 12 },
   show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
