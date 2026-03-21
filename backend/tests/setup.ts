@@ -1,10 +1,11 @@
 /**
- * Global test setup — runs before all test files.
- * Connects to all 4 databases, cleans up after all tests.
+ * Global test setup — runs before each test file in the single fork.
+ * Uses guards to only connect/register once.
  */
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname } from 'node:path';
+import mongoose from 'mongoose';
 
 dotenv.config({ path: resolve(dirname(fileURLToPath(import.meta.url)), '../../.env') });
 
@@ -13,22 +14,39 @@ import { verifyNeo4j, closeNeo4j } from '../src/config/neo4j.js';
 import { getRedis, closeRedis } from '../src/config/redis.js';
 import { closeInflux } from '../src/config/influx.js';
 
-// Import all models so they're registered
-import '../src/modules/users/users.model.js';
-import '../src/modules/courses/courses.model.js';
-import '../src/modules/professors/professors.model.js';
-import '../src/modules/materials/materials.model.js';
-import '../src/modules/materials/comments.model.js';
-import '../src/modules/reviews/reviews.model.js';
-import '../src/modules/forum/forum.model.js';
-import '../src/modules/groups/groups.model.js';
-import '../src/modules/deadlines/deadlines.model.js';
-import '../src/modules/marketplace/marketplace.model.js';
-import '../src/modules/events/events.model.js';
-import '../src/modules/notifications/notifications.model.js';
+let initialized = false;
 
 beforeAll(async () => {
-  await connectMongo();
+  if (initialized) return;
+  initialized = true;
+
+  if (mongoose.connection.readyState === 0) {
+    await connectMongo();
+  }
+
+  // Register models safely — skip already-registered
+  const models: [string, string][] = [
+    ['User', '../src/modules/users/users.model.js'],
+    ['Course', '../src/modules/courses/courses.model.js'],
+    ['Professor', '../src/modules/professors/professors.model.js'],
+    ['Material', '../src/modules/materials/materials.model.js'],
+    ['Comment', '../src/modules/materials/comments.model.js'],
+    ['Review', '../src/modules/reviews/reviews.model.js'],
+    ['Question', '../src/modules/forum/forum.model.js'],
+    ['Group', '../src/modules/groups/groups.model.js'],
+    ['Deadline', '../src/modules/deadlines/deadlines.model.js'],
+    ['Listing', '../src/modules/marketplace/marketplace.model.js'],
+    ['Event', '../src/modules/events/events.model.js'],
+    ['Notification', '../src/modules/notifications/notifications.model.js'],
+  ];
+
+  const registered = new Set(mongoose.modelNames());
+  for (const [name, path] of models) {
+    if (!registered.has(name)) {
+      await import(path);
+    }
+  }
+
   await verifyNeo4j();
   await getRedis();
 });
