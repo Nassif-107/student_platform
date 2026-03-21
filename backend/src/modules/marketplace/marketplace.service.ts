@@ -63,7 +63,8 @@ export async function getListings(query: ListingsQuery) {
     if (query.maxPrice !== undefined) filter.price.$lte = query.maxPrice;
   }
   if (query.search) {
-    filter.$text = { $search: query.search };
+    const searchRegex = new RegExp(query.search, 'i');
+    filter.$or = [{ title: searchRegex }, { description: searchRegex }];
   }
 
   const [items, total] = await Promise.all([

@@ -52,7 +52,8 @@ export async function getMaterials(query: MaterialQueryInput): Promise<Materials
     filter.type = type;
   }
   if (search) {
-    filter.$text = { $search: search };
+    const searchRegex = new RegExp(search, 'i');
+    filter.$or = [{ title: searchRegex }, { description: searchRegex }, { tags: searchRegex }];
   }
 
   const sortOrder = SORT_MAP[sort] ?? SORT_MAP.newest;

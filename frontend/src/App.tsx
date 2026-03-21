@@ -140,10 +140,11 @@ function ProtectedLayout() {
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,
-      gcTime: 30 * 60 * 1000,
+      staleTime: 2 * 60 * 1000, // 2 min — show cached data instantly, refetch in background
+      gcTime: 10 * 60 * 1000,   // 10 min — keep unused data for back-navigation
       retry: 1,
-      refetchOnWindowFocus: false,
+      refetchOnMount: 'always',  // always refetch when component mounts (navigating to page)
+      refetchOnWindowFocus: false, // don't spam refetch on tab switch
     },
   },
 })

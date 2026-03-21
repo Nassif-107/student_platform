@@ -47,6 +47,11 @@ export function ProfessorsPage() {
     }
   }, [debouncedSearch])
 
+  useEffect(() => {
+    setPage(1)
+    setAccumulated([])
+  }, [])
+
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['professors', debouncedSearch, page],
     queryFn: () =>

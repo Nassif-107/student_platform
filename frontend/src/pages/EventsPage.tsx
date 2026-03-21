@@ -166,6 +166,12 @@ export function EventsPage() {
     setAccumulated([])
   }, [typeFilter])
 
+  // Reset on mount
+  useEffect(() => {
+    setPage(1)
+    setAccumulated([])
+  }, [])
+
   const params: EventsParams = {
     page,
     limit: DEFAULT_PAGE_SIZE,

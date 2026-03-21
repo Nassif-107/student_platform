@@ -77,7 +77,12 @@ export async function getCourses(query: CourseQuery) {
     filter.semester = query.semester;
   }
   if (query.search) {
-    filter.$text = { $search: query.search };
+    const searchRegex = new RegExp(query.search, 'i');
+    filter.$or = [
+      { title: searchRegex },
+      { code: searchRegex },
+      { tags: searchRegex },
+    ];
   }
 
   const sortOption = buildSortOption(query.sort);

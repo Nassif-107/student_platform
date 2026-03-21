@@ -18,6 +18,7 @@ export function CoursesPage() {
   const debouncedSearch = useDebounce(search)
   const prevSearch = useRef(debouncedSearch)
 
+  // Reset pagination when search changes
   useEffect(() => {
     if (prevSearch.current !== debouncedSearch) {
       setPage(1)
@@ -25,6 +26,12 @@ export function CoursesPage() {
       prevSearch.current = debouncedSearch
     }
   }, [debouncedSearch])
+
+  // Reset accumulated data on mount (navigating to page)
+  useEffect(() => {
+    setPage(1)
+    setAccumulated([])
+  }, [])
 
   const params: CoursesParams = {
     search: debouncedSearch || undefined,

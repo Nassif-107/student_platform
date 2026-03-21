@@ -28,6 +28,11 @@ export function MaterialsPage() {
     }
   }, [debouncedSearch])
 
+  useEffect(() => {
+    setPage(1)
+    setAccumulated([])
+  }, [])
+
   const params: MaterialsParams = {
     search: debouncedSearch || undefined,
     page,

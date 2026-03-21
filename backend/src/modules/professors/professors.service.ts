@@ -28,7 +28,8 @@ export async function getProfessors(query: ProfessorQuery) {
     filter.faculty = query.faculty;
   }
   if (query.search) {
-    filter.$text = { $search: query.search };
+    const searchRegex = new RegExp(query.search, 'i');
+    filter.$or = [{ 'name.first': searchRegex }, { 'name.last': searchRegex }, { department: searchRegex }];
   }
 
   const [items, total] = await Promise.all([

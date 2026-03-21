@@ -39,7 +39,10 @@ export async function getQuestions(query: QuestionQuery) {
   if (courseId) filter['course.id'] = courseId;
   if (tags && tags.length > 0) filter.tags = { $in: tags };
   if (status) filter.status = status;
-  if (search) filter.$text = { $search: search };
+  if (search) {
+    const searchRegex = new RegExp(search, 'i');
+    filter.$or = [{ title: searchRegex }, { body: searchRegex }, { tags: searchRegex }];
+  }
 
   const skip = (page - 1) * limit;
   const sortObj: Record<string, 1 | -1> = {};

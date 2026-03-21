@@ -139,7 +139,15 @@ export async function searchUsers(
 ): Promise<{ items: unknown[]; total: number }> {
   const skip = (page - 1) * limit;
 
-  const filter = { $text: { $search: query } };
+  const searchRegex = new RegExp(query, 'i');
+  const filter = {
+    $or: [
+      { 'name.first': searchRegex },
+      { 'name.last': searchRegex },
+      { email: searchRegex },
+      { faculty: searchRegex },
+    ],
+  };
 
   const [items, total] = await Promise.all([
     UserModel.find(filter)
