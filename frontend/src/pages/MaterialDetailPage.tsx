@@ -1,4 +1,5 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { FileText, Download, Heart, MessageCircle, User, Loader2, ArrowLeft } from 'lucide-react'
 import { materialsService } from '@/services/materials.service'
@@ -24,26 +25,34 @@ export function MaterialDetailPage() {
     enabled: !!id,
   })
 
+  // Track liked state locally since backend detail endpoint doesn't return per-user isLiked
+  const [liked, setLiked] = useState(false)
+  const [likeCount, setLikeCount] = useState(0)
+
+  // Sync when material data loads
+  useEffect(() => {
+    if (material) {
+      setLiked(material.isLiked ?? false)
+      setLikeCount(material.likeCount ?? 0)
+    }
+  }, [material?.id])
+
   const likeMutation = useMutation({
     mutationFn: () => materialsService.likeMaterial(id!),
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ['material', id] })
-      const previous = queryClient.getQueryData(['material', id])
-      queryClient.setQueryData(['material', id], (old: any) => ({
-        ...old,
-        isLiked: !old?.isLiked,
-        likeCount: (old?.likeCount ?? 0) + (old?.isLiked ? -1 : 1),
-      }))
-      return { previous }
+    onMutate: () => {
+      setLiked((prev) => !prev)
+      setLikeCount((prev) => prev + (liked ? -1 : 1))
     },
-    onError: (_err, _vars, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(['material', id], context.previous)
-      }
-      toast({ title: 'Ошибка', description: 'Не удалось оценить материал', variant: 'error' })
+    onSuccess: (result) => {
+      const res = result as unknown as { liked: boolean; likeCount: number }
+      setLiked(res.liked)
+      setLikeCount(res.likeCount)
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['material', id] })
+    onError: (err) => {
+      // Revert
+      setLiked((prev) => !prev)
+      setLikeCount((prev) => prev + (liked ? 1 : -1))
+      toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось оценить материал', variant: 'error' })
     },
   })
 
@@ -102,19 +111,19 @@ export function MaterialDetailPage() {
         </h1>
         <p className="mt-2 text-muted-foreground">{material.description}</p>
 
-        <div className="mt-4 flex items-center gap-3">
+        <Link to={ROUTES.PROFILE(material.authorId)} className="mt-4 flex items-center gap-3 group w-fit">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
             <User className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">
+            <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
               {material.authorName}
             </p>
             <p className="text-xs text-muted-foreground">
               {formatDateTime(material.createdAt)}
             </p>
           </div>
-        </div>
+        </Link>
 
         <div className="mt-6 flex items-center gap-4">
           <Button
@@ -123,8 +132,8 @@ export function MaterialDetailPage() {
             onClick={() => likeMutation.mutate()}
             disabled={likeMutation.isPending}
           >
-            <Heart className={`h-4 w-4 ${material.isLiked ? 'fill-destructive text-destructive' : ''}`} />
-            {formatNumber(material.likeCount)}
+            <Heart className={`h-4 w-4 ${liked ? 'fill-destructive text-destructive' : ''}`} />
+            {formatNumber(likeCount)}
           </Button>
           <Button
             variant="outline"

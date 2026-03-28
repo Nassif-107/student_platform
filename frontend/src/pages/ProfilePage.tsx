@@ -271,7 +271,7 @@ export function ProfilePage() {
               materials.items.map((m) => (
                 <motion.div key={m.id} variants={item}>
                   <Link to={ROUTES.MATERIAL_DETAIL(m.id)}>
-                    <Card interactive className="p-4">
+                    <Card className="p-4 transition-colors hover:border-primary/30">
                       <p className="font-medium">{m.title}</p>
                       <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{m.description}</p>
                       <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">

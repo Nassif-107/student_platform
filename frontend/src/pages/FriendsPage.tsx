@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -62,30 +62,32 @@ function UserCard({
 }) {
   return (
     <motion.div variants={item} className="flex items-center gap-3 rounded-xl border bg-card p-4 transition-colors hover:bg-accent/30">
-      <div className="relative">
-        <Avatar className="h-12 w-12">
-          {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.firstName} />}
-          <AvatarFallback>{user.firstName?.[0] ?? ''}{user.lastName?.[0] ?? ''}</AvatarFallback>
-        </Avatar>
-        {isOnline !== undefined && (
-          <OnlineIndicator isOnline={isOnline} size="md" />
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-foreground truncate">
-          {user.firstName} {user.lastName}
-        </p>
-        {user.faculty && (
-          <p className="text-xs text-muted-foreground truncate">
-            {user.faculty}
+      <Link to={ROUTES.PROFILE(user.id)} className="flex items-center gap-3 flex-1 min-w-0 group">
+        <div className="relative">
+          <Avatar className="h-12 w-12">
+            {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.firstName} />}
+            <AvatarFallback>{user.firstName?.[0] ?? ''}{user.lastName?.[0] ?? ''}</AvatarFallback>
+          </Avatar>
+          {isOnline !== undefined && (
+            <OnlineIndicator isOnline={isOnline} size="md" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-foreground truncate group-hover:text-primary transition-colors">
+            {user.firstName} {user.lastName}
           </p>
-        )}
-        {user.mutualFriends !== undefined && user.mutualFriends > 0 && (
-          <p className="text-xs text-muted-foreground">
-            {user.mutualFriends} общих друзей
-          </p>
-        )}
-      </div>
+          {user.faculty && (
+            <p className="text-xs text-muted-foreground truncate">
+              {user.faculty}
+            </p>
+          )}
+          {user.mutualFriends !== undefined && user.mutualFriends > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {user.mutualFriends} общих друзей
+            </p>
+          )}
+        </div>
+      </Link>
       <div className="flex items-center gap-2 shrink-0">{actions}</div>
     </motion.div>
   )

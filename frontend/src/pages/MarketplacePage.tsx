@@ -106,7 +106,7 @@ function ListingCard({ listing }: { listing: Listing }) {
             )}
           </div>
           <p className="text-xs text-muted-foreground truncate">
-            {listing.authorName}
+            <Link to={ROUTES.PROFILE(listing.authorId)} onClick={(e) => e.stopPropagation()} className="hover:text-primary transition-colors">{listing.authorName}</Link>
             {listing.university ? ` · ${listing.university}` : ''}
           </p>
           <DateBadge date={listing.createdAt} />

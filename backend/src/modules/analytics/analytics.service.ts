@@ -1,3 +1,12 @@
+/**
+ * Analytics service — hybrid queries across MongoDB, InfluxDB, and Redis.
+ *
+ * Design principles:
+ *  - MongoDB = source of truth for counts, stats, aggregations
+ *  - InfluxDB = time-series data for charts, trends, activity over time
+ *  - Redis = leaderboard sorted sets (handled by seed/sync jobs)
+ *  - Frontend receives flat, ready-to-display structures (no InfluxDB knowledge needed)
+ */
 import mongoose from 'mongoose';
 import { getInfluxQueryApi } from '../../config/influx.js';
 import { env } from '../../config/env.js';
@@ -6,8 +15,10 @@ import { logger } from '../../utils/logger.js';
 import { MaterialModel } from '../materials/materials.model.js';
 import { CourseModel } from '../courses/courses.model.js';
 import { ReviewModel } from '../reviews/reviews.model.js';
-import { QuestionModel } from '../forum/forum.model.js';
+import { QuestionModel, AnswerModel } from '../forum/forum.model.js';
 import { UserModel } from '../users/users.model.js';
+import { EventModel } from '../events/events.model.js';
+import { GroupModel } from '../groups/groups.model.js';
 
 const BUCKET = env.INFLUX_BUCKET;
 
@@ -27,213 +38,143 @@ async function queryInflux<T = Record<string, unknown>>(flux: string): Promise<T
 }
 
 // ---------------------------------------------------------------------------
-// Personal analytics
+// Personal analytics — MongoDB for stats, InfluxDB for timeline
 // ---------------------------------------------------------------------------
 
 export async function getPersonalAnalytics(userId: string) {
-  const [activityByDay, materialsStats, reputationHistory, topMaterials] =
+  const oid = new mongoose.Types.ObjectId(userId);
+
+  // All stats from MongoDB — the source of truth
+  const [user, materialsStats, reviewCount, questionCount, answerCount, groupCount, eventCount, topMaterials, activityByDay] =
     await Promise.all([
-      getActivityByDay(userId),
-      getMaterialsStats(userId),
-      getReputationHistory(userId),
-      getTopMaterials(userId),
+      UserModel.findById(userId).select('stats').lean(),
+      MaterialModel.aggregate([
+        { $match: { 'author.id': oid } },
+        { $group: { _id: null, count: { $sum: 1 }, totalViews: { $sum: '$stats.views' }, totalDownloads: { $sum: '$stats.downloads' }, totalLikes: { $sum: '$stats.likes' } } },
+      ]).then((r) => r[0] ?? { count: 0, totalViews: 0, totalDownloads: 0, totalLikes: 0 }),
+      ReviewModel.countDocuments({ 'author.id': oid }),
+      QuestionModel.countDocuments({ 'author.id': oid }),
+      AnswerModel.countDocuments({ 'author.id': oid }),
+      GroupModel.countDocuments({ 'members.userId': oid }),
+      EventModel.countDocuments({ attendees: oid }),
+      MaterialModel.find({ 'author.id': oid }).sort({ 'stats.downloads': -1 }).limit(5).select('title type stats').lean(),
+      getActivityTimeline(userId),
     ]);
 
-  return { activityByDay, materialsStats, reputationHistory, topMaterials };
+  return {
+    // Flat stats for the frontend StatCards
+    materialsUploaded: materialsStats.count,
+    reviewsWritten: reviewCount,
+    questionsAsked: questionCount,
+    answersGiven: answerCount,
+    groupsJoined: groupCount,
+    eventsAttended: eventCount,
+    reputation: user?.stats?.reputation ?? 0,
+    loginStreak: 0, // not tracked currently
+    // Detailed data for charts
+    materialsStats,
+    topMaterials,
+    activityByDay,
+  };
 }
 
-async function getActivityByDay(userId: string) {
+async function getActivityTimeline(userId: string) {
   const safeId = sanitizeIdForFlux(userId);
   if (!safeId) return [];
 
+  // InfluxDB stores userId as a stringField — filter using _value comparison via pivot
   const flux = `from(bucket: "${BUCKET}")
   |> range(start: -30d)
   |> filter(fn: (r) => r._measurement == "user_activity")
-  |> filter(fn: (r) => r.userId == "${safeId}")
+  |> filter(fn: (r) => r._field == "userId")
+  |> filter(fn: (r) => r._value == "${safeId}")
   |> aggregateWindow(every: 1d, fn: count, createEmpty: true)
-  |> yield(name: "activity_by_day")`;
+  |> yield(name: "activity_timeline")`;
 
   return queryInflux(flux);
-}
-
-async function getMaterialsStats(userId: string) {
-  const result = await MaterialModel.aggregate([
-    { $match: { 'author.id': new mongoose.Types.ObjectId(userId) } },
-    {
-      $group: {
-        _id: null,
-        totalViews: { $sum: '$stats.views' },
-        totalDownloads: { $sum: '$stats.downloads' },
-        totalLikes: { $sum: '$stats.likes' },
-        count: { $sum: 1 },
-      },
-    },
-  ]);
-
-  return result[0] ?? { totalViews: 0, totalDownloads: 0, totalLikes: 0, count: 0 };
-}
-
-async function getReputationHistory(userId: string) {
-  const safeId = sanitizeIdForFlux(userId);
-  if (!safeId) return [];
-
-  const flux = `from(bucket: "${BUCKET}")
-  |> range(start: -90d)
-  |> filter(fn: (r) => r._measurement == "reputation_snapshot")
-  |> filter(fn: (r) => r.userId == "${safeId}")
-  |> aggregateWindow(every: 1w, fn: last, createEmpty: false)
-  |> yield(name: "reputation_history")`;
-
-  return queryInflux(flux);
-}
-
-async function getTopMaterials(userId: string) {
-  return MaterialModel.find({ 'author.id': userId })
-    .sort({ 'stats.downloads': -1 })
-    .limit(5)
-    .select('title type stats.downloads stats.views stats.likes')
-    .lean();
 }
 
 // ---------------------------------------------------------------------------
-// Course analytics
+// Course analytics — MongoDB for ratings, InfluxDB for activity trends
 // ---------------------------------------------------------------------------
 
 export async function getCourseAnalytics(courseId: string) {
-  const [ratingTrend, difficultyTrend, materialsByType, activityHeatmap] =
-    await Promise.all([
-      getRatingTrend(courseId),
-      getDifficultyTrend(courseId),
-      getMaterialsByType(courseId),
-      getActivityHeatmap(courseId),
-    ]);
+  const oid = new mongoose.Types.ObjectId(courseId);
 
-  return { ratingTrend, difficultyTrend, materialsByType, activityHeatmap };
-}
-
-async function getRatingTrend(courseId: string) {
-  const safeId = sanitizeIdForFlux(courseId);
-  if (!safeId) return [];
-
-  const flux = `from(bucket: "${BUCKET}")
-  |> range(start: -365d)
-  |> filter(fn: (r) => r._measurement == "review_metrics")
-  |> filter(fn: (r) => r.courseId == "${safeId}")
-  |> filter(fn: (r) => r._field == "rating")
-  |> aggregateWindow(every: 1mo, fn: mean, createEmpty: false)
-  |> yield(name: "rating_trend")`;
-
-  return queryInflux(flux);
-}
-
-async function getDifficultyTrend(courseId: string) {
-  const safeId = sanitizeIdForFlux(courseId);
-  if (!safeId) return [];
-
-  const flux = `from(bucket: "${BUCKET}")
-  |> range(start: -365d)
-  |> filter(fn: (r) => r._measurement == "review_metrics")
-  |> filter(fn: (r) => r.courseId == "${safeId}")
-  |> filter(fn: (r) => r._field == "difficulty")
-  |> aggregateWindow(every: 1mo, fn: mean, createEmpty: false)
-  |> yield(name: "difficulty_trend")`;
-
-  return queryInflux(flux);
-}
-
-async function getMaterialsByType(courseId: string) {
-  return MaterialModel.aggregate([
-    { $match: { 'course.id': new mongoose.Types.ObjectId(courseId) } },
-    { $group: { _id: '$type', count: { $sum: 1 } } },
-    { $project: { type: '$_id', count: 1, _id: 0 } },
-    { $sort: { count: -1 } },
+  // Rating and difficulty trends from MongoDB reviews (grouped by semester)
+  const [ratingsBySemester, materialsByType, enrolledCount] = await Promise.all([
+    ReviewModel.aggregate([
+      { $match: { 'target.type': 'course', 'target.id': oid } },
+      {
+        $group: {
+          _id: '$semester',
+          avgRating: { $avg: '$ratings.overall' },
+          avgDifficulty: { $avg: '$ratings.difficulty' },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]),
+    MaterialModel.aggregate([
+      { $match: { 'course.id': oid } },
+      { $group: { _id: '$type', count: { $sum: 1 } } },
+      { $project: { type: '$_id', count: 1, _id: 0 } },
+      { $sort: { count: -1 } },
+    ]),
+    CourseModel.findById(courseId).select('stats.enrolledCount').lean(),
   ]);
-}
 
-async function getActivityHeatmap(courseId: string) {
-  const safeId = sanitizeIdForFlux(courseId);
-  if (!safeId) return [];
-
-  const flux = `from(bucket: "${BUCKET}")
-  |> range(start: -30d)
-  |> filter(fn: (r) => r._measurement == "user_activity")
-  |> filter(fn: (r) => r.courseId == "${safeId}")
-  |> map(fn: (r) => ({ r with hour: date.hour(t: r._time), dow: date.weekDay(t: r._time) }))
-  |> group(columns: ["hour", "dow"])
-  |> count()
-  |> yield(name: "activity_heatmap")`;
-
-  return queryInflux(flux);
+  return {
+    ratingTrend: ratingsBySemester.map((r) => ({ semester: r._id, avgRating: r.avgRating, count: r.count })),
+    difficultyTrend: ratingsBySemester.map((r) => ({ semester: r._id, avgDifficulty: r.avgDifficulty })),
+    materialsByType,
+    enrolledCount: (enrolledCount as any)?.stats?.enrolledCount ?? 0,
+  };
 }
 
 // ---------------------------------------------------------------------------
-// Platform analytics
+// Platform analytics (admin) — all MongoDB counts
 // ---------------------------------------------------------------------------
 
 export async function getPlatformAnalytics() {
-  const [totalCounts, growthTrend, topUniversities, peakHours] =
+  const [users, materials, reviews, questions, courses, groups, events, topUniversities] =
     await Promise.all([
-      getTotalCounts(),
-      getGrowthTrend(),
-      getTopUniversities(),
-      getPeakHours(),
+      UserModel.countDocuments(),
+      MaterialModel.countDocuments(),
+      ReviewModel.countDocuments(),
+      QuestionModel.countDocuments(),
+      CourseModel.countDocuments(),
+      GroupModel.countDocuments(),
+      EventModel.countDocuments(),
+      UserModel.aggregate([
+        { $group: { _id: '$university.name', count: { $sum: 1 } } },
+        { $project: { university: '$_id', count: 1, _id: 0 } },
+        { $sort: { count: -1 } },
+        { $limit: 10 },
+      ]),
     ]);
 
-  return { totalCounts, growthTrend, topUniversities, peakHours };
-}
-
-async function getTotalCounts() {
-  const [users, materials, reviews, questions] = await Promise.all([
-    UserModel.countDocuments(),
-    MaterialModel.countDocuments(),
-    ReviewModel.countDocuments(),
-    QuestionModel.countDocuments(),
-  ]);
-
-  return { users, materials, reviews, questions };
-}
-
-async function getGrowthTrend() {
-  const flux = `from(bucket: "${BUCKET}")
-  |> range(start: -90d)
-  |> filter(fn: (r) => r._measurement == "platform_metrics")
-  |> filter(fn: (r) => r._field == "new_users")
-  |> aggregateWindow(every: 1w, fn: sum, createEmpty: true)
-  |> yield(name: "growth_trend")`;
-
-  return queryInflux(flux);
-}
-
-async function getTopUniversities() {
-  return UserModel.aggregate([
-    { $group: { _id: '$university.name', count: { $sum: 1 } } },
-    { $project: { university: '$_id', count: 1, _id: 0 } },
-    { $sort: { count: -1 } },
-    { $limit: 10 },
-  ]);
-}
-
-async function getPeakHours() {
-  const flux = `from(bucket: "${BUCKET}")
-  |> range(start: -7d)
-  |> filter(fn: (r) => r._measurement == "user_activity")
-  |> map(fn: (r) => ({ r with hour: date.hour(t: r._time) }))
-  |> group(columns: ["hour"])
-  |> count()
-  |> sort(columns: ["_value"], desc: true)
-  |> yield(name: "peak_hours")`;
-
-  return queryInflux(flux);
+  return {
+    totalCounts: { users, materials, reviews, questions, courses, groups, events },
+    topUniversities,
+  };
 }
 
 // ---------------------------------------------------------------------------
-// Course popularity ranking
+// Course popularity ranking — MongoDB
 // ---------------------------------------------------------------------------
 
 export async function getPopularCourses(limit = 10) {
-  const [coursesByEnrollment, coursesByReviews, activityTrend] = await Promise.all([
+  const [coursesByEnrollment, coursesByReviews, materialsByCourse] = await Promise.all([
     CourseModel.aggregate([
-      { $project: { title: 1, code: 1, enrollmentCount: { $ifNull: ['$stats.enrolledCount', 0] } } },
+      {
+        $project: {
+          title: 1,
+          code: 1,
+          enrollmentCount: { $ifNull: ['$stats.enrolledCount', 0] },
+          materialCount: { $ifNull: ['$stats.materialCount', 0] },
+        },
+      },
       { $sort: { enrollmentCount: -1 } },
       { $limit: limit },
     ]),
@@ -242,39 +183,43 @@ export async function getPopularCourses(limit = 10) {
       { $sort: { reviewCount: -1 } },
       { $limit: limit },
     ]),
-    queryInflux(`from(bucket: "${BUCKET}")
-      |> range(start: -30d)
-      |> filter(fn: (r) => r._measurement == "user_activity")
-      |> filter(fn: (r) => r.action == "material_view" or r.action == "review_created")
-      |> group(columns: ["courseCode"])
-      |> count()
-      |> sort(columns: ["_value"], desc: true)
-      |> limit(n: ${limit})
-      |> yield(name: "popular_courses")`),
+    // Actual material count from Materials collection (more accurate than stats cache)
+    MaterialModel.aggregate([
+      { $group: { _id: '$course.id', count: { $sum: 1 } } },
+    ]),
   ]);
 
-  return { coursesByEnrollment, coursesByReviews, activityTrend };
+  // Merge real materialCount into course data
+  const matMap = new Map(materialsByCourse.map((m) => [String(m._id), m.count]));
+  for (const c of coursesByEnrollment) {
+    c.materialCount = matMap.get(String(c._id)) ?? c.materialCount ?? 0;
+  }
+
+  return { coursesByEnrollment, coursesByReviews };
 }
 
 // ---------------------------------------------------------------------------
-// User activity timeline
+// User activity timeline — InfluxDB
 // ---------------------------------------------------------------------------
 
 export async function getUserTimeline(userId: string) {
   const safeId = sanitizeIdForFlux(userId);
   if (!safeId) return { activityTimeline: [], weeklyBreakdown: [] };
 
+  // userId is stored as stringField — filter by field value, not tag
   const [activityTimeline, weeklyBreakdown] = await Promise.all([
     queryInflux(`from(bucket: "${BUCKET}")
       |> range(start: -90d)
       |> filter(fn: (r) => r._measurement == "user_activity")
-      |> filter(fn: (r) => r.userId == "${safeId}")
+      |> filter(fn: (r) => r._field == "userId")
+      |> filter(fn: (r) => r._value == "${safeId}")
       |> aggregateWindow(every: 1d, fn: count, createEmpty: true)
       |> yield(name: "activity_timeline")`),
     queryInflux(`from(bucket: "${BUCKET}")
       |> range(start: -30d)
       |> filter(fn: (r) => r._measurement == "user_activity")
-      |> filter(fn: (r) => r.userId == "${safeId}")
+      |> filter(fn: (r) => r._field == "userId")
+      |> filter(fn: (r) => r._value == "${safeId}")
       |> aggregateWindow(every: 1w, fn: count, createEmpty: true)
       |> yield(name: "weekly_breakdown")`),
   ]);
@@ -283,11 +228,11 @@ export async function getUserTimeline(userId: string) {
 }
 
 // ---------------------------------------------------------------------------
-// Reputation leaderboard
+// Reputation leaderboard — MongoDB
 // ---------------------------------------------------------------------------
 
 export async function getLeaderboard(limit = 20) {
-  const leaderboard = await UserModel.aggregate([
+  return UserModel.aggregate([
     { $match: { 'stats.reputation': { $gt: 0 } } },
     {
       $project: {
@@ -302,6 +247,4 @@ export async function getLeaderboard(limit = 20) {
     { $sort: { reputation: -1 } },
     { $limit: limit },
   ]);
-
-  return leaderboard;
 }

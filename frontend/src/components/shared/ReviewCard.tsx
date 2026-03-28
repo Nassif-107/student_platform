@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import { ThumbsUp, Star } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -6,10 +7,12 @@ import { RatingStars } from '@/components/shared/RatingStars'
 import { reviewsService } from '@/services/reviews.service'
 import { cn } from '@/lib/cn'
 import { formatRelative } from '@/lib/format-date'
+import { ROUTES } from '@/lib/constants'
 
 interface ReviewCardProps {
   review: {
     id: string
+    authorId?: string
     authorName?: string
     rating: number
     text: string
@@ -88,7 +91,11 @@ export function ReviewCard({
     return (
       <Card className={cn('p-4', className)}>
         <div className="flex items-center justify-between">
-          <p className="font-medium">{subtitle ?? review.authorName ?? 'Аноним'}</p>
+          {review.authorId ? (
+            <Link to={ROUTES.PROFILE(review.authorId)} className="font-medium hover:text-primary transition-colors">{subtitle ?? review.authorName ?? 'Аноним'}</Link>
+          ) : (
+            <p className="font-medium">{subtitle ?? review.authorName ?? 'Аноним'}</p>
+          )}
           <div className="flex items-center gap-1 text-yellow-500">
             <Star className="h-4 w-4 fill-current" />
             <span className="text-sm font-medium">{review.rating}</span>
@@ -121,15 +128,27 @@ export function ReviewCard({
     <Card className={cn('p-4', className)}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="text-xs">
-              {review.authorName?.[0] ?? 'А'}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="text-sm font-medium">{review.authorName ?? 'Аноним'}</p>
-            {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-          </div>
+          {review.authorId ? (
+            <Link to={ROUTES.PROFILE(review.authorId)} className="flex items-center gap-2 group">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="text-xs">{review.authorName?.[0] ?? 'А'}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm font-medium group-hover:text-primary transition-colors">{review.authorName ?? 'Аноним'}</p>
+                {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+              </div>
+            </Link>
+          ) : (
+            <>
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="text-xs">{review.authorName?.[0] ?? 'А'}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm font-medium">{review.authorName ?? 'Аноним'}</p>
+                {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+              </div>
+            </>
+          )}
         </div>
         <RatingStars value={review.rating} size="sm" />
       </div>

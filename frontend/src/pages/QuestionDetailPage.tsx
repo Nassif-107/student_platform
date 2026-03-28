@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -255,16 +255,16 @@ export function QuestionDetailPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <Link to={ROUTES.PROFILE(question.authorId)} className="flex items-center gap-2 group w-fit">
           <Avatar className="h-8 w-8">
             {question.authorAvatarUrl && <AvatarImage src={question.authorAvatarUrl} />}
             <AvatarFallback>{question.authorName?.charAt(0)}</AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-sm font-medium">{question.authorName}</p>
+            <p className="text-sm font-medium group-hover:text-primary transition-colors">{question.authorName}</p>
             <p className="text-xs text-muted-foreground">{formatRelative(question.createdAt)}</p>
           </div>
-        </div>
+        </Link>
       </motion.div>
 
       <div className="space-y-4">
@@ -295,14 +295,14 @@ export function QuestionDetailPage() {
               <div className="flex-1 space-y-3">
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">{a.body}</p>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <Link to={ROUTES.PROFILE(a.authorId)} className="flex items-center gap-2 group">
                     <Avatar className="h-6 w-6">
                       {a.authorAvatarUrl && <AvatarImage src={a.authorAvatarUrl} />}
                       <AvatarFallback className="text-xs">{a.authorName?.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <span className="text-sm text-muted-foreground">{a.authorName}</span>
+                    <span className="text-sm text-muted-foreground group-hover:text-primary transition-colors">{a.authorName}</span>
                     <span className="text-xs text-muted-foreground">{formatRelative(a.createdAt)}</span>
-                  </div>
+                  </Link>
                   {isAuthor && !question.isSolved && !a.isAccepted && (
                     <Button variant="outline" size="sm" onClick={() => acceptMutation.mutate(a.id)} disabled={acceptingAnswerId === a.id}>
                       <Check className="h-3 w-3" /> Принять ответ

@@ -92,7 +92,7 @@ const DEFAULT_EVENT_META = { label: 'Событие', icon: Trophy, color: 'bg-g
 
 function EventCard({ event, onToggle, userId, isToggling }: { event: Event; onToggle: (id: string) => void; userId?: string; isToggling?: boolean }) {
   const meta = EVENT_TYPES[event.type] ?? DEFAULT_EVENT_META
-  const isRegistered = event.isRegistered ?? (userId ? (event.attendees ?? []).includes(userId) : false)
+  const isRegistered = event.isRegistered ?? (userId ? (event.attendees ?? []).map(String).includes(userId) : false)
   const isPast = new Date(event.date) < new Date()
   const gradientIdx = event.id.charCodeAt(0) % GRADIENT_PLACEHOLDERS.length
   const Icon = meta.icon
@@ -173,13 +173,38 @@ export function EventsPage() {
 
   const toggleMutation = useMutation({
     mutationFn: (id: string) => eventsService.registerForEvent(id),
-    onMutate: (id) => { setTogglingEventId(id) },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['events'] })
+    onMutate: async (eventId) => {
+      setTogglingEventId(eventId)
+      // Optimistic update — toggle isRegistered and attendee count locally
+      await queryClient.cancelQueries({ queryKey: ['events'] })
+      const previous = queryClient.getQueryData(['events', search, typeFilter])
+      queryClient.setQueryData(['events', search, typeFilter], (old: any) => {
+        if (!old?.items) return old
+        return {
+          ...old,
+          items: old.items.map((e: any) => {
+            if (e.id !== eventId) return e
+            const wasRegistered = e.isRegistered ?? (user?.id ? (e.attendees ?? []).map(String).includes(user.id) : false)
+            return {
+              ...e,
+              isRegistered: !wasRegistered,
+              currentParticipants: (e.currentParticipants ?? 0) + (wasRegistered ? -1 : 1),
+              attendees: wasRegistered
+                ? (e.attendees ?? []).filter((a: string) => String(a) !== user?.id)
+                : [...(e.attendees ?? []), user?.id],
+            }
+          }),
+        }
+      })
+      return { previous }
+    },
+    onError: (err, _id, context) => {
+      if (context?.previous) queryClient.setQueryData(['events', search, typeFilter], context.previous)
+      toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось изменить регистрацию', variant: 'error' })
       setTogglingEventId(null)
     },
-    onError: (err) => {
-      toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось изменить регистрацию', variant: 'error' })
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] })
       setTogglingEventId(null)
     },
   })

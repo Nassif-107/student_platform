@@ -138,28 +138,27 @@ export function CommandPalette() {
     const result: CommandGroup[] = []
     const lowerQ = query.toLowerCase()
 
-    // Content results from server
+    // Content results from server (shown above static items when searching)
     if (isSearching) {
       result.push(...contentGroups)
     }
 
-    // Personal shortcuts
-    if (user && !isSearching) {
-      result.push({
-        title: user.firstName ?? 'Личное',
-        items: [
-          { id: 'my-profile', label: 'Мой профиль', icon: User, path: `/profile/${user.id}` },
-          { id: 'my-materials', label: 'Мои материалы', icon: FileText, path: `/profile/${user.id}?tab=materials` },
-          {
-            id: 'my-notifs', label: 'Уведомления', icon: Bell, path: '/notifications',
-            badge: unreadCount > 0 ? String(unreadCount > 99 ? '99+' : unreadCount) : undefined,
-          },
-          { id: 'my-settings', label: 'Настройки', icon: Settings, path: '/settings' },
-        ],
-      })
+    // Personal shortcuts — filtered by query, hidden when nothing matches
+    if (user) {
+      const personalItems: CommandItem[] = [
+        { id: 'my-profile', label: 'Мой профиль', icon: User, path: `/profile/${user.id}` },
+        { id: 'my-materials', label: 'Мои материалы', icon: FileText, path: `/profile/${user.id}?tab=materials` },
+        {
+          id: 'my-notifs', label: 'Уведомления', icon: Bell, path: '/notifications',
+          badge: unreadCount > 0 ? String(unreadCount > 99 ? '99+' : unreadCount) : undefined,
+        },
+        { id: 'my-settings', label: 'Настройки', icon: Settings, path: '/settings' },
+      ]
+      const filteredPersonal = lowerQ ? personalItems.filter((i) => i.label.toLowerCase().includes(lowerQ)) : personalItems
+      if (filteredPersonal.length) result.push({ title: user.firstName ?? 'Личное', items: filteredPersonal })
     }
 
-    // Navigation
+    // Navigation — filtered by query
     const navItems: CommandItem[] = [
       { id: 'n-home', label: 'Главная', icon: Home, path: '/' },
       { id: 'n-courses', label: 'Курсы', icon: GraduationCap, path: '/courses' },
@@ -175,18 +174,18 @@ export function CommandPalette() {
     const filteredNav = lowerQ ? navItems.filter((i) => i.label.toLowerCase().includes(lowerQ)) : navItems
     if (filteredNav.length) result.push({ title: 'Навигация', items: filteredNav })
 
-    // Actions (role-gated)
-    if (!isSearching) {
-      const actions: CommandItem[] = [
-        { id: 'a-upload', label: 'Загрузить материал', icon: Upload, path: '/materials/upload' },
-        { id: 'a-ask', label: 'Задать вопрос', icon: HelpCircle, path: '/forum/ask' },
-        { id: 'a-group', label: 'Создать группу', icon: PlusCircle, path: '/groups' },
-        { id: 'a-listing', label: 'Новое объявление', icon: Megaphone, path: '/marketplace/new' },
-        { id: 'a-edit', label: 'Редактировать профиль', icon: UserCog, path: '/profile/edit' },
-      ]
-      if (isMod) actions.push({ id: 'a-course', label: 'Создать курс', icon: BookOpen, path: '/courses', roleBadge: 'Мод' })
-      if (isAdmin) actions.push({ id: 'a-platform', label: 'Платформенная аналитика', icon: Shield, path: '/analytics', roleBadge: 'Админ' })
-      result.push({ title: 'Действия', items: actions })
+    // Actions — filtered by query, role-gated
+    const actions: CommandItem[] = [
+      { id: 'a-upload', label: 'Загрузить материал', icon: Upload, path: '/materials/upload' },
+      { id: 'a-ask', label: 'Задать вопрос', icon: HelpCircle, path: '/forum/ask' },
+      { id: 'a-group', label: 'Создать группу', icon: PlusCircle, path: '/groups' },
+      { id: 'a-listing', label: 'Новое объявление', icon: Megaphone, path: '/marketplace/new' },
+      { id: 'a-edit', label: 'Редактировать профиль', icon: UserCog, path: '/profile/edit' },
+    ]
+    if (isMod) actions.push({ id: 'a-course', label: 'Создать курс', icon: BookOpen, path: '/courses', roleBadge: 'Мод' })
+    if (isAdmin) actions.push({ id: 'a-platform', label: 'Платформенная аналитика', icon: Shield, path: '/analytics', roleBadge: 'Админ' })
+    const filteredActions = lowerQ ? actions.filter((i) => i.label.toLowerCase().includes(lowerQ)) : actions
+    if (filteredActions.length) result.push({ title: 'Действия', items: filteredActions })
     }
 
     return result

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
@@ -167,8 +167,9 @@ export function GroupDetailPage() {
         </h2>
         <motion.div variants={container} initial="hidden" animate="show" className="space-y-2">
           {group.members.map((m: GroupMember) => (
-            <motion.div key={m.userId} variants={item}
-              className="flex items-center gap-3 rounded-lg border bg-card p-3"
+            <motion.div key={m.userId} variants={item}>
+            <Link to={ROUTES.PROFILE(m.userId)}
+              className="flex items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:border-primary/30 hover:bg-accent/30"
             >
               <Avatar className="h-10 w-10">
                 {m.avatarUrl && <AvatarImage src={m.avatarUrl} />}
@@ -181,6 +182,7 @@ export function GroupDetailPage() {
               <Badge variant={m.role === 'leader' ? 'default' : 'secondary'} className="shrink-0">
                 {m.role === 'leader' ? <><Crown className="h-3 w-3 mr-1" /> Лидер</> : 'Участник'}
               </Badge>
+            </Link>
             </motion.div>
           ))}
         </motion.div>

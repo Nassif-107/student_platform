@@ -39,10 +39,9 @@ export interface ActivityTimeline {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function mapUserActivityStats(raw: any): UserActivityStats {
-  // Backend /analytics/personal returns { activityByDay, materialsStats, reputationHistory, topMaterials }
-  // Extract what we can from the nested InfluxDB data or use defaults
+  // Backend /analytics/personal now returns flat stats from MongoDB
   return {
-    materialsUploaded: raw.materialsUploaded ?? raw.materialsStats?.length ?? 0,
+    materialsUploaded: raw.materialsUploaded ?? raw.materialsStats?.count ?? 0,
     questionsAsked: raw.questionsAsked ?? 0,
     answersGiven: raw.answersGiven ?? 0,
     reviewsWritten: raw.reviewsWritten ?? 0,

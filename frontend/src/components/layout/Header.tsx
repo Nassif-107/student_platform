@@ -128,7 +128,7 @@ export function Header({ onMobileMenuClick }: HeaderProps) {
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-border/50 glass p-1 shadow-lg">
+              <div className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-border bg-card p-1 shadow-xl">
                 <div className="border-b border-border px-3 py-2">
                   <p className="text-sm font-medium text-foreground">
                     {user.firstName ?? ''} {user.lastName ?? ''}

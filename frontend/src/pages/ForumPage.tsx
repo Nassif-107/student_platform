@@ -164,14 +164,14 @@ export function ForumPage() {
                   <span className="flex items-center gap-1"><Eye className="h-4 w-4" />{q.viewCount}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 mt-3">
+              <Link to={ROUTES.PROFILE(q.authorId)} onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 mt-3 group/author w-fit">
                 <Avatar className="h-6 w-6">
                   {q.authorAvatarUrl && <AvatarImage src={q.authorAvatarUrl} />}
                   <AvatarFallback className="text-xs">{q.authorName?.charAt(0)}</AvatarFallback>
                 </Avatar>
-                <span className="text-sm text-muted-foreground">{q.authorName}</span>
+                <span className="text-sm text-muted-foreground group-hover/author:text-primary transition-colors">{q.authorName}</span>
                 <span className="text-xs text-muted-foreground">{formatRelative(q.createdAt)}</span>
-              </div>
+              </Link>
             </motion.div>
           ))}
         </motion.div>

@@ -25,7 +25,7 @@ export const questionQuerySchema = z.object({
   courseId: z.string().optional(),
   tag: z.string().optional(),
   search: z.string().max(200).optional(),
-  status: z.enum(['open', 'closed', 'resolved']).optional(),
+  status: z.enum(['open', 'resolved']).optional(),
   sort: z.enum(['newest', 'votes', 'unanswered']).default('newest'),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),

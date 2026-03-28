@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/auth.store'
+import { useNotificationStore } from '@/store/notifications.store'
 import { authService, type RegisterData } from '@/services/auth.service'
 import { ROUTES } from '@/lib/constants'
 
@@ -33,6 +34,8 @@ export function useAuth() {
     [setAuth, navigate],
   )
 
+  const resetNotifications = useNotificationStore((s) => s.reset)
+
   const logout = useCallback(async () => {
     try {
       await authService.logout()
@@ -40,9 +43,10 @@ export function useAuth() {
       // ignore logout errors on the server side
     } finally {
       clearAuth()
+      resetNotifications()
       navigate(ROUTES.LOGIN)
     }
-  }, [clearAuth, navigate])
+  }, [clearAuth, resetNotifications, navigate])
 
   return {
     user,

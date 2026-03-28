@@ -82,7 +82,7 @@ export function MaterialsPage() {
                   {material.title}
                 </h3>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {material.authorName} &middot; {formatRelative(material.createdAt)}
+                  <Link to={ROUTES.PROFILE(material.authorId)} onClick={(e) => e.stopPropagation()} className="hover:text-primary transition-colors">{material.authorName}</Link> &middot; {formatRelative(material.createdAt)}
                 </p>
               </div>
               <div className="hidden items-center gap-4 text-xs text-muted-foreground sm:flex">

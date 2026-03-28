@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft,
@@ -9,6 +9,8 @@ import {
   Send,
   Loader2,
   Trash2,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -73,6 +75,18 @@ export function ListingDetailPage() {
     },
     onError: (err) => {
       toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось отправить сообщение', variant: 'error' })
+    },
+  })
+
+  const toggleMutation = useMutation({
+    mutationFn: () => marketplaceService.toggleActive(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['listing', id] })
+      queryClient.invalidateQueries({ queryKey: ['listings'] })
+      toast({ title: listing?.isActive ? 'Объявление снято' : 'Объявление активировано', variant: 'success' })
+    },
+    onError: (err) => {
+      toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось изменить статус', variant: 'error' })
     },
   })
 
@@ -191,17 +205,17 @@ export function ListingDetailPage() {
 
           <p className="text-muted-foreground">{listing.description}</p>
 
-          <div className="flex items-center gap-3 pt-2">
+          <Link to={ROUTES.PROFILE(listing.authorId)} className="flex items-center gap-3 pt-2 group w-fit">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
               <User className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-sm font-medium">{listing.authorName}</p>
+              <p className="text-sm font-medium group-hover:text-primary transition-colors">{listing.authorName}</p>
               {listing.university && (
                 <p className="text-xs text-muted-foreground">{listing.university}</p>
               )}
             </div>
-          </div>
+          </Link>
 
           {listing.location && (
             <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -254,30 +268,41 @@ export function ListingDetailPage() {
               </Dialog>
             )}
             {isOwner && (
-              confirmDelete ? (
-                <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => toggleMutation.mutate()}
+                  disabled={toggleMutation.isPending}
+                >
+                  {toggleMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : listing.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {listing.isActive ? 'Снять с продажи' : 'Активировать'}
+                </Button>
+                {confirmDelete ? (
+                  <>
+                    <Button
+                      variant="destructive"
+                      className="gap-2"
+                      onClick={() => deleteMutation.mutate()}
+                      disabled={deleteMutation.isPending}
+                    >
+                      {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      Подтвердить
+                    </Button>
+                    <Button variant="outline" onClick={() => setConfirmDelete(false)}>
+                      Отмена
+                    </Button>
+                  </>
+                ) : (
                   <Button
                     variant="destructive"
                     className="gap-2"
-                    onClick={() => deleteMutation.mutate()}
-                    disabled={deleteMutation.isPending}
+                    onClick={() => setConfirmDelete(true)}
                   >
-                    {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                    Подтвердить удаление
+                    <Trash2 className="h-4 w-4" /> Удалить
                   </Button>
-                  <Button variant="outline" onClick={() => setConfirmDelete(false)}>
-                    Отмена
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  variant="destructive"
-                  className="gap-2"
-                  onClick={() => setConfirmDelete(true)}
-                >
-                  <Trash2 className="h-4 w-4" /> Удалить объявление
-                </Button>
-              )
+                )}
+              </div>
             )}
           </div>
           </div>

@@ -52,14 +52,14 @@ export async function getProfessorReviews(
   const skip = (page - 1) * limit;
 
   const [items, total] = await Promise.all([
-    ReviewModel.find({ targetType: 'professor', targetId: request.params.id })
+    ReviewModel.find({ 'target.type': 'professor', 'target.id': request.params.id })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean(),
     ReviewModel.countDocuments({
-      targetType: 'professor',
-      targetId: request.params.id,
+      'target.type': 'professor',
+      'target.id': request.params.id,
     }),
   ]);
 

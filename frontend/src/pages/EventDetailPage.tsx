@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   CalendarDays,
@@ -133,7 +133,11 @@ export function EventDetailPage() {
 
             {event.organizerName && (
               <p className="text-sm text-muted-foreground">
-                Организатор: <span className="font-medium text-foreground">{event.organizerName}</span>
+                Организатор: {event.organizerId ? (
+                  <Link to={ROUTES.PROFILE(event.organizerId)} className="font-medium text-foreground hover:text-primary transition-colors">{event.organizerName}</Link>
+                ) : (
+                  <span className="font-medium text-foreground">{event.organizerName}</span>
+                )}
               </p>
             )}
 
@@ -170,14 +174,14 @@ export function EventDetailPage() {
             </h2>
             <div className="flex flex-wrap gap-3">
               {attendingFriends.map((f) => (
-                <div key={f.id} className="flex items-center gap-2 rounded-full border bg-card px-3 py-1.5">
+                <Link key={f.id} to={ROUTES.PROFILE(f.id)} className="flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 hover:border-primary/30 hover:bg-accent/30 transition-colors">
                   <Avatar className="h-6 w-6">
                     <AvatarFallback className="text-xs">
                       {f.firstName?.[0]}{f.lastName?.[0]}
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium">{f.firstName} {f.lastName}</span>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -189,14 +193,14 @@ export function EventDetailPage() {
             <h2 className="mb-4 text-lg font-semibold">Участники ({participantList.length})</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               {(participantList as Array<{ id: string; firstName: string; lastName: string; avatarUrl?: string }>).map((p) => (
-                <div key={p.id} className="flex items-center gap-3 rounded-lg border p-3">
+                <Link key={p.id} to={ROUTES.PROFILE(p.id)} className="flex items-center gap-3 rounded-lg border p-3 hover:border-primary/30 hover:bg-accent/30 transition-colors">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback>
                       {p.firstName?.[0]}{p.lastName?.[0]}
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium">{p.firstName} {p.lastName}</span>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

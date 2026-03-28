@@ -106,14 +106,32 @@ export const coursesService = {
     return (raw ?? []).map(mapCourseStudent)
   },
 
-  getCourseMaterials: async (id: string, params?: { page?: number; limit?: number }): Promise<PaginatedResponse<unknown>> => {
+  getCourseMaterials: async (id: string, params?: { page?: number; limit?: number }): Promise<PaginatedResponse<Record<string, unknown>>> => {
     const raw = await api.get<unknown>(`/courses/${id}/materials${buildQueryString(params)}`)
-    return mapPaginatedResponse(raw, (r) => r)
+    return mapPaginatedResponse(raw, (r: any) => ({
+      id: r.id ?? r._id ?? '',
+      title: r.title ?? '',
+      type: r.type ?? '',
+      authorName: r.author?.name ?? '',
+      downloadCount: r.stats?.downloads ?? r.downloadCount ?? 0,
+      likeCount: r.stats?.likes ?? r.likeCount ?? 0,
+      createdAt: r.createdAt,
+    }))
   },
 
-  getCourseQuestions: async (id: string, params?: { page?: number; limit?: number }): Promise<PaginatedResponse<unknown>> => {
+  getCourseQuestions: async (id: string, params?: { page?: number; limit?: number }): Promise<PaginatedResponse<Record<string, unknown>>> => {
     const raw = await api.get<unknown>(`/courses/${id}/questions${buildQueryString(params)}`)
-    return mapPaginatedResponse(raw, (r) => r)
+    return mapPaginatedResponse(raw, (r: any) => ({
+      id: r.id ?? r._id ?? '',
+      title: r.title ?? '',
+      authorName: r.author?.name ?? '',
+      answerCount: r.answerCount ?? 0,
+      voteCount: r.votes ?? r.voteCount ?? 0,
+      views: r.views ?? 0,
+      hasAcceptedAnswer: r.hasAcceptedAnswer ?? false,
+      status: r.status ?? 'open',
+      createdAt: r.createdAt,
+    }))
   },
 
   getCourseDeadlines: async (id: string): Promise<unknown[]> => {

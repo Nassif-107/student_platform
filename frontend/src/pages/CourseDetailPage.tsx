@@ -142,7 +142,9 @@ export function CourseDetailPage() {
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <GraduationCap className="h-4 w-4" />
-              {course.professorName}
+              {course.professorId ? (
+                <Link to={ROUTES.PROFESSOR_DETAIL(course.professorId)} className="hover:text-primary transition-colors">{course.professorName}</Link>
+              ) : course.professorName}
             </div>
           </div>
 
