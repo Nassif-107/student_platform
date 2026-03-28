@@ -154,6 +154,31 @@ export function QuestionDetailPage() {
     },
   })
 
+  const questionVoteMutation = useMutation({
+    mutationFn: (dir: 'up' | 'down') => forumService.voteQuestion(id!, dir),
+    onMutate: async (dir) => {
+      await queryClient.cancelQueries({ queryKey: ['forum-question', id] })
+      const previous = queryClient.getQueryData<QuestionDetailResponse>(['forum-question', id])
+      queryClient.setQueryData<QuestionDetailResponse>(['forum-question', id], (old) => {
+        if (!old) return old
+        const q = old.question
+        const wasVoted = q.isVoted
+        let delta = 0
+        let newVote: 'up' | 'down' | null = dir
+        if (wasVoted === dir) { delta = dir === 'up' ? -1 : 1; newVote = null }
+        else if (wasVoted) { delta = dir === 'up' ? 2 : -2 }
+        else { delta = dir === 'up' ? 1 : -1 }
+        return { ...old, question: { ...q, voteCount: q.voteCount + delta, isVoted: newVote } }
+      })
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(['forum-question', id], context.previous)
+      toast({ title: 'Ошибка', description: _err instanceof Error ? _err.message : 'Не удалось проголосовать', variant: 'error' })
+    },
+    onSettled: () => { queryClient.invalidateQueries({ queryKey: ['forum-question', id] }) },
+  })
+
   const isAuthor = user?.id === question?.authorId
 
   if (detailLoading) {
@@ -205,8 +230,29 @@ export function QuestionDetailPage() {
           {(question.tags ?? []).map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}
         </div>
 
-        <div className="rounded-xl border bg-card p-5 whitespace-pre-wrap text-sm leading-relaxed">
-          {question.body}
+        <div className="flex gap-4">
+          <div className="flex flex-col items-center gap-1 pt-2">
+            <button
+              onClick={() => questionVoteMutation.mutate('up')}
+              disabled={questionVoteMutation.isPending}
+              title="За"
+              className={cn('p-1.5 rounded-lg hover:bg-accent disabled:opacity-50 transition-colors', question.isVoted === 'up' && 'text-primary bg-primary/10')}
+            >
+              <ChevronUp className="h-5 w-5" />
+            </button>
+            <span className="text-base font-bold">{question.voteCount}</span>
+            <button
+              onClick={() => questionVoteMutation.mutate('down')}
+              disabled={questionVoteMutation.isPending}
+              title="Против"
+              className={cn('p-1.5 rounded-lg hover:bg-accent disabled:opacity-50 transition-colors', question.isVoted === 'down' && 'text-destructive bg-destructive/10')}
+            >
+              <ChevronDown className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="flex-1 rounded-xl border bg-card p-5 whitespace-pre-wrap text-sm leading-relaxed">
+            {question.body}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">

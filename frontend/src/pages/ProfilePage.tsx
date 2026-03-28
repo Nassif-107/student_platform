@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
@@ -15,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ReviewCard } from '@/components/shared/ReviewCard'
 import { useAuth } from '@/hooks/useAuth'
+import { useTabParam } from '@/hooks/useTabParam'
 import { socialService, type UserProfile } from '@/services/social.service'
 import { materialsService } from '@/services/materials.service'
 import { reviewsService } from '@/services/reviews.service'
@@ -39,7 +39,7 @@ function yearLabel(course?: number): string {
 export function ProfilePage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState('materials')
+  const [activeTab, setActiveTab] = useTabParam('materials')
 
   const targetId = id ?? user?.id
   const isOwnProfile = !id || id === user?.id

@@ -29,6 +29,7 @@ import { groupsService, type Group, type GroupType } from '@/services/groups.ser
 import { coursesService } from '@/services/courses.service'
 import { ROUTES } from '@/lib/constants'
 import { cn } from '@/lib/cn'
+import { useTabParam } from '@/hooks/useTabParam'
 
 const createGroupSchema = z.object({
   name: z.string().min(3, 'Минимум 3 символа').max(100, 'Максимум 100 символов'),
@@ -58,7 +59,7 @@ export function GroupsPage() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { user } = useAuthStore()
-  const [tab, setTab] = useState('my')
+  const [tab, setTab] = useTabParam('my')
   const [search, setSearch] = useState('')
   const [courseFilter, setCourseFilter] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)

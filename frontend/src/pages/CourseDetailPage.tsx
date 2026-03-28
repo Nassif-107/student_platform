@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -22,11 +21,12 @@ import { ReviewCard } from '@/components/shared/ReviewCard'
 import { CreateReviewDialog } from '@/components/shared/CreateReviewDialog'
 import { ROUTES } from '@/lib/constants'
 import { cn } from '@/lib/cn'
+import { useTabParam } from '@/hooks/useTabParam'
 
 export function CourseDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [tab, setTab] = useState('overview')
+  const [tab, setTab] = useTabParam('overview')
 
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -278,19 +278,25 @@ export function CourseDetailPage() {
                   <Link
                     key={q.id ?? q._id}
                     to={ROUTES.QUESTION_DETAIL(q.id ?? q._id)}
-                    className="block rounded-xl border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-sm"
+                    className="flex items-center gap-4 rounded-xl border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-sm"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium">{q.title}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {q.author?.name ?? ''} &middot; {q.answerCount ?? 0} ответов &middot; {q.views ?? 0} просмотров
-                        </p>
-                      </div>
-                      {(q.hasAcceptedAnswer || q.status === 'resolved') && (
-                        <Badge className="bg-success/10 text-success text-xs">Решён</Badge>
-                      )}
+                    <div className="flex flex-col items-center gap-0.5 text-center min-w-[48px]">
+                      <span className="text-lg font-bold text-foreground">{q.voteCount ?? q.votes ?? 0}</span>
+                      <span className="text-[10px] text-muted-foreground">голосов</span>
                     </div>
+                    <div className={cn('flex flex-col items-center gap-0.5 text-center min-w-[48px] rounded-lg px-2 py-1', (q.answerCount ?? 0) > 0 ? 'bg-success/10 text-success' : 'text-muted-foreground')}>
+                      <span className="text-lg font-bold">{q.answerCount ?? 0}</span>
+                      <span className="text-[10px]">ответов</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">{q.title}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {q.author?.name ?? ''} &middot; {formatRelative(q.createdAt)}
+                      </p>
+                    </div>
+                    {(q.hasAcceptedAnswer || q.status === 'resolved') && (
+                      <Badge className="bg-success/10 text-success text-xs shrink-0">Решён</Badge>
+                    )}
                   </Link>
                 ))}
               </div>
@@ -317,27 +323,42 @@ export function CourseDetailPage() {
                 {deadlineItems.map((d: any) => {
                   const due = new Date(d.dueDate)
                   const diffDays = (due.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-                  const urgent = diffDays < 0 ? 'text-destructive' : diffDays < 3 ? 'text-warning' : 'text-muted-foreground'
+                  const urgency = diffDays < 0
+                    ? { label: 'Просрочено', cls: 'bg-destructive/10 text-destructive' }
+                    : diffDays < 1
+                    ? { label: 'Сегодня', cls: 'bg-destructive/10 text-destructive' }
+                    : diffDays < 3
+                    ? { label: 'Скоро', cls: 'bg-warning/10 text-warning' }
+                    : { label: 'Не срочно', cls: 'bg-info/10 text-info' }
                   return (
-                    <div
+                    <Link
                       key={d.id ?? d._id}
-                      className="flex items-center justify-between rounded-xl border bg-card p-4"
+                      to={ROUTES.DEADLINES}
+                      className="flex items-center justify-between rounded-xl border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-sm"
                     >
-                      <div>
-                        <p className="font-medium">{d.title}</p>
-                        <p className="text-xs text-muted-foreground">{d.type ?? ''}</p>
+                      <div className="flex items-center gap-3">
+                        <div className="rounded-lg bg-accent p-2.5">
+                          <CalendarDays className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{d.title}</p>
+                          <p className="text-xs text-muted-foreground">{d.type ?? ''}</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className={cn('text-sm font-medium', urgent)}>
-                          {formatRelative(d.dueDate)}
-                        </p>
-                        {d.confirmations > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            {d.confirmations} подтверждений
+                      <div className="flex items-center gap-3">
+                        <Badge className={cn('text-xs', urgency.cls)}>{urgency.label}</Badge>
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-muted-foreground">
+                            {formatRelative(d.dueDate)}
                           </p>
-                        )}
+                          {(d.confirmations ?? d.confirmedBy?.length ?? 0) > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              {d.confirmations ?? d.confirmedBy?.length ?? 0} подтверждений
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    </Link>
                   )
                 })}
               </div>

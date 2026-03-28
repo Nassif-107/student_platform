@@ -85,7 +85,7 @@ export function Header({ onMobileMenuClick }: HeaderProps) {
         </kbd>
       </button>
 
-      <div className="flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-2">
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}

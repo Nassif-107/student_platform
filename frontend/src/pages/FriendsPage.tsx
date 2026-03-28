@@ -22,6 +22,7 @@ import { useToast } from '@/components/ui/toast'
 import { socialService } from '@/services/social.service'
 import { useDebounce } from '@/hooks/useDebounce'
 import { usePresence } from '@/hooks/usePresence'
+import { useTabParam } from '@/hooks/useTabParam'
 import { ROUTES } from '@/lib/constants'
 
 const container = { show: { transition: { staggerChildren: 0.04 } } }
@@ -92,7 +93,7 @@ function UserCard({
 
 export function FriendsPage() {
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState('friends')
+  const [activeTab, setActiveTab] = useTabParam('friends')
   const [searchQuery, setSearchQuery] = useState('')
   const [pendingUserId, setPendingUserId] = useState<string | null>(null)
   const debouncedSearch = useDebounce(searchQuery, 400)

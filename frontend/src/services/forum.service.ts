@@ -110,9 +110,26 @@ function mapAnswer(raw: any): ForumAnswer {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+/** Translate frontend ForumParams → backend query format */
+function toBackendForumParams(params?: ForumParams): Record<string, string | number | undefined> {
+  if (!params) return {}
+  const { courseId, tag, isSolved, sortBy, sortOrder, search, page, limit } = params
+  // Backend expects: sort as "-field" string, status as "open"/"resolved", tags as CSV
+  const sortPrefix = sortOrder === 'asc' ? '' : '-'
+  return {
+    courseId,
+    tags: tag,
+    status: isSolved === undefined ? undefined : isSolved ? 'resolved' : 'open',
+    search,
+    sort: sortBy ? `${sortPrefix}${sortBy}` : undefined,
+    page,
+    limit,
+  }
+}
+
 export const forumService = {
   getQuestions: async (params?: ForumParams): Promise<PaginatedResponse<ForumQuestion>> => {
-    const raw = await api.get<unknown>(`/forum/questions${buildQueryString(params)}`)
+    const raw = await api.get<unknown>(`/forum/questions${buildQueryString(toBackendForumParams(params))}`)
     return mapPaginatedResponse(raw, mapQuestion)
   },
 
