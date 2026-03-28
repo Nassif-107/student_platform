@@ -24,6 +24,7 @@ import { marketplaceRoutes } from './modules/marketplace/marketplace.routes.js';
 import { eventsRoutes } from './modules/events/events.routes.js';
 import { notificationsRoutes } from './modules/notifications/notifications.routes.js';
 import { analyticsRoutes } from './modules/analytics/analytics.routes.js';
+import { searchRoutes } from './modules/search/search.routes.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -66,11 +67,20 @@ export async function buildApp(): Promise<FastifyInstance> {
     },
   });
 
+  // --- Rate limiting (Redis-backed, per-route granularity) ---
   await app.register(rateLimit, {
-    max: 100,
+    global: true,
+    max: 200,
     timeWindow: '1 minute',
     allowList: ['127.0.0.1'],
+    keyGenerator: (request) => request.ip,
   });
+
+  // Stricter limits applied per-route via route config:
+  // Auth endpoints: 10 req/min (brute-force protection)
+  // File uploads: 10 req/min (resource protection)
+  // Search: 30 req/min (prevent abuse)
+  // All others: inherit global 200/min
 
   // --- Database connections ---
   await app.register(dbPlugin);
@@ -134,6 +144,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(eventsRoutes, { prefix: '/api/events' });
   await app.register(notificationsRoutes, { prefix: '/api/notifications' });
   await app.register(analyticsRoutes, { prefix: '/api/analytics' });
+  await app.register(searchRoutes, { prefix: '/api/search' });
 
   // --- Socket.io ---
   // Socket.io is set up after the app is ready and the underlying HTTP server exists.

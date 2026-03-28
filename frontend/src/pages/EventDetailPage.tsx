@@ -97,7 +97,7 @@ export function EventDetailPage() {
         <div className="rounded-2xl border border-border bg-card overflow-hidden">
           {/* Header / Cover */}
           {event.imageUrl && (
-            <img src={event.imageUrl} alt={event.title} className="h-48 w-full object-cover" />
+            <img src={event.imageUrl} alt={event.title} loading="lazy" decoding="async" className="h-48 w-full object-cover" />
           )}
 
           <div className="p-6 md:p-8 space-y-4">

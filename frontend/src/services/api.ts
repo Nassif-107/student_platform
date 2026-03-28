@@ -33,6 +33,16 @@ function transformIds(obj: any): any {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+/** Combine multiple AbortSignals — aborts when ANY fires */
+function anySignal(...signals: AbortSignal[]): AbortSignal {
+  const controller = new AbortController()
+  for (const s of signals) {
+    if (s.aborted) { controller.abort(s.reason); return controller.signal }
+    s.addEventListener('abort', () => controller.abort(s.reason), { once: true })
+  }
+  return controller.signal
+}
+
 class ApiClient {
   private baseUrl: string
 
@@ -130,22 +140,43 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${accessToken}`
     }
 
-    let response = await fetch(`${this.baseUrl}${url}`, {
-      ...options,
-      headers,
-      signal: options.signal,
-    })
+    // Timeout: abort if no response in 30s (prevents hanging requests)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 30_000)
+    const signal = options.signal
+      ? anySignal(options.signal, controller.signal)
+      : controller.signal
+
+    let response: Response
+    try {
+      response = await fetch(`${this.baseUrl}${url}`, {
+        ...options,
+        headers,
+        signal,
+      })
+    } catch (err) {
+      clearTimeout(timeoutId)
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        throw new ApiClientError('Время ожидания запроса истекло', 408)
+      }
+      throw err
+    }
+    clearTimeout(timeoutId)
 
     if (response.status === 401 && accessToken) {
       const newToken = await this.refreshAccessToken()
 
       if (newToken) {
         headers['Authorization'] = `Bearer ${newToken}`
+        const retryController = new AbortController()
+        const retryTimeout = setTimeout(() => retryController.abort(), 30_000)
+        try {
         response = await fetch(`${this.baseUrl}${url}`, {
           ...options,
           headers,
-          signal: options.signal,
+          signal: options.signal ? anySignal(options.signal, retryController.signal) : retryController.signal,
         })
+        } finally { clearTimeout(retryTimeout) }
       } else {
         this.clearAuth()
         throw new ApiClientError('Сессия истекла. Пожалуйста, войдите снова.', 401)

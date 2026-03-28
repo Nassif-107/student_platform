@@ -27,4 +27,20 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    target: 'esnext',
+    sourcemap: false,
+    cssMinify: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-core': ['react', 'react-dom', 'react-router-dom'],
+          'query': ['@tanstack/react-query'],
+          'ui': ['@radix-ui/react-dialog', '@radix-ui/react-tabs', '@radix-ui/react-select', '@radix-ui/react-avatar', '@radix-ui/react-switch', '@radix-ui/react-separator'],
+          'motion': ['framer-motion'],
+          'forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
+        },
+      },
+    },
+  },
 })
