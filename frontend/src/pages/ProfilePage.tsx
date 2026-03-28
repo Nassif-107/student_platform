@@ -3,12 +3,14 @@ import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
   FileText, MessageSquare, Star, HelpCircle, Pencil,
-  MapPin, Send, ExternalLink,
+  MapPin, Send, ExternalLink, GraduationCap, BookOpen,
+  Github, Phone,
 } from 'lucide-react'
 import { PageTransition } from '@/components/shared/PageTransition'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -21,6 +23,7 @@ import { reviewsService } from '@/services/reviews.service'
 import { analyticsService, type ActivityTimeline } from '@/services/analytics.service'
 import { ROUTES } from '@/lib/constants'
 import { formatRelative } from '@/lib/format-date'
+import { cn } from '@/lib/cn'
 
 const container = { show: { transition: { staggerChildren: 0.06 } } }
 const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }
@@ -35,6 +38,13 @@ function yearLabel(course?: number): string {
   if (course === 5) return 'Магистратура'
   return 'Аспирантура'
 }
+
+const GRADIENT_CLASSES = [
+  'from-blue-600 to-indigo-600',
+  'from-emerald-500 to-teal-600',
+  'from-orange-500 to-rose-500',
+  'from-violet-600 to-purple-600',
+]
 
 export function ProfilePage() {
   const { id } = useParams<{ id: string }>()
@@ -71,10 +81,11 @@ export function ProfilePage() {
   if (isLoading) {
     return (
       <PageTransition className="space-y-6">
-        <div className="flex items-center gap-6">
-          <Skeleton className="h-24 w-24 rounded-full" />
-          <div className="space-y-2">
-            <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-36 w-full rounded-2xl" />
+        <div className="flex items-end gap-6 -mt-12 px-6">
+          <Skeleton className="h-28 w-28 rounded-full border-4 border-background" />
+          <div className="space-y-2 pb-2">
+            <Skeleton className="h-7 w-48" />
             <Skeleton className="h-4 w-32" />
           </div>
         </div>
@@ -91,99 +102,143 @@ export function ProfilePage() {
     )
   }
 
+  const gradientIdx = (profile.firstName?.charCodeAt(0) ?? 0) % GRADIENT_CLASSES.length
+  const hasSocials = profile.socialLinks?.telegram || profile.socialLinks?.vk || profile.socialLinks?.github || profile.socialLinks?.phone
+
   return (
     <PageTransition className="space-y-6">
-      {/* Header */}
-      <Card>
-        <CardContent className="flex flex-col items-center gap-6 p-6 sm:flex-row sm:items-start">
-          <Avatar className="h-24 w-24">
-            {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.firstName} />}
-            <AvatarFallback className="text-xl">{getInitials(profile)}</AvatarFallback>
-          </Avatar>
+      {/* Profile Card with Cover */}
+      <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        {/* Gradient Cover */}
+        <div className={cn('h-32 sm:h-40 bg-gradient-to-br', GRADIENT_CLASSES[gradientIdx])} />
 
-          <div className="flex-1 text-center sm:text-left">
-            <h1 className="text-2xl font-bold">
-              {profile.firstName} {profile.lastName}
-            </h1>
-            <div className="mt-1 flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground sm:justify-start">
-              {profile.university && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="h-3.5 w-3.5" />
-                  {profile.university}
-                </span>
-              )}
-              {profile.faculty && <span>&middot; {profile.faculty}</span>}
-              {profile.course && <span>&middot; {yearLabel(profile.course)}</span>}
-            </div>
+        {/* Avatar + Name row */}
+        <div className="relative px-6 pb-6">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-14 sm:-mt-16">
+            <Avatar className="h-28 w-28 border-4 border-background shadow-lg">
+              {profile.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.firstName} />}
+              <AvatarFallback className="text-3xl font-bold bg-background">{getInitials(profile)}</AvatarFallback>
+            </Avatar>
 
-            {profile.bio && (
-              <p className="mt-3 text-sm text-foreground">{profile.bio}</p>
-            )}
-
-            {/* Social links */}
-            <div className="mt-3 flex flex-wrap gap-2">
-              {profile.socialLinks?.telegram && (
-                <a
-                  href={`https://t.me/${profile.socialLinks.telegram}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Badge variant="outline" className="gap-1">
-                    <Send className="h-3 w-3" /> Telegram
-                  </Badge>
-                </a>
-              )}
-              {profile.socialLinks?.vk && (
-                <a
-                  href={`https://vk.com/${profile.socialLinks.vk}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Badge variant="outline" className="gap-1">
-                    <ExternalLink className="h-3 w-3" /> VK
-                  </Badge>
-                </a>
-              )}
-            </div>
-
-            {/* Skills */}
-            {(profile.skills?.length ?? 0) > 0 && (
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {profile.skills?.map((s) => (
-                  <Badge key={s} variant="secondary">{s}</Badge>
-                ))}
+            <div className="flex-1 sm:pb-1">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">
+                    {profile.firstName} {profile.lastName}
+                    {profile.patronymic ? ` ${profile.patronymic}` : ''}
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    {profile.role === 'admin' ? 'Администратор' : profile.role === 'moderator' ? 'Модератор' : 'Студент'}
+                  </p>
+                </div>
+                {isOwnProfile && (
+                  <Link to={ROUTES.EDIT_PROFILE}>
+                    <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
+                      <Pencil className="h-4 w-4" /> Редактировать
+                    </Button>
+                  </Link>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
-          {isOwnProfile && (
-            <Link to={ROUTES.EDIT_PROFILE}>
-              <Button variant="outline" size="sm" className="gap-1">
-                <Pencil className="h-4 w-4" /> Редактировать
-              </Button>
-            </Link>
-          )}
-        </CardContent>
-      </Card>
+          {/* Info Grid */}
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {/* Left: Details */}
+            <div className="space-y-3">
+              {profile.university && (
+                <div className="flex items-center gap-2.5 text-sm">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                    <GraduationCap className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">{profile.university}</p>
+                    <p className="text-xs text-muted-foreground">{[profile.faculty, profile.specialization].filter(Boolean).join(' · ')}</p>
+                  </div>
+                </div>
+              )}
+              {profile.course && (
+                <div className="flex items-center gap-2.5 text-sm">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-info/10">
+                    <BookOpen className="h-4 w-4 text-info" />
+                  </div>
+                  <p className="font-medium">{yearLabel(profile.course)}</p>
+                </div>
+              )}
+              {profile.bio && (
+                <p className="text-sm text-muted-foreground leading-relaxed pt-1">{profile.bio}</p>
+              )}
+            </div>
 
-      {/* Stats */}
+            {/* Right: Social + Skills */}
+            <div className="space-y-3">
+              {hasSocials && (
+                <div className="flex flex-wrap gap-2">
+                  {profile.socialLinks?.telegram && (
+                    <a href={`https://t.me/${profile.socialLinks.telegram}`} target="_blank" rel="noopener noreferrer">
+                      <Badge variant="outline" className="gap-1.5 py-1.5 hover:bg-accent transition-colors">
+                        <Send className="h-3.5 w-3.5" /> Telegram
+                      </Badge>
+                    </a>
+                  )}
+                  {profile.socialLinks?.vk && (
+                    <a href={`https://vk.com/${profile.socialLinks.vk}`} target="_blank" rel="noopener noreferrer">
+                      <Badge variant="outline" className="gap-1.5 py-1.5 hover:bg-accent transition-colors">
+                        <ExternalLink className="h-3.5 w-3.5" /> VK
+                      </Badge>
+                    </a>
+                  )}
+                  {profile.socialLinks?.github && (
+                    <a href={`https://github.com/${profile.socialLinks.github}`} target="_blank" rel="noopener noreferrer">
+                      <Badge variant="outline" className="gap-1.5 py-1.5 hover:bg-accent transition-colors">
+                        <Github className="h-3.5 w-3.5" /> GitHub
+                      </Badge>
+                    </a>
+                  )}
+                  {profile.socialLinks?.phone && (
+                    <Badge variant="outline" className="gap-1.5 py-1.5">
+                      <Phone className="h-3.5 w-3.5" /> {profile.socialLinks.phone}
+                    </Badge>
+                  )}
+                </div>
+              )}
+              {(profile.skills?.length ?? 0) > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">Навыки</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {profile.skills?.map((s) => (
+                      <Badge key={s} className="bg-primary/10 text-primary border-0 text-xs">{s}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Row */}
       <motion.div
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-2 gap-4 md:grid-cols-4"
+        className="grid grid-cols-2 gap-3 sm:grid-cols-4"
       >
         {[
-          { label: 'Материалы', value: profile.materialCount ?? 0, icon: FileText, color: 'text-primary' },
-          { label: 'Отзывы', value: profile.reviewCount ?? 0, icon: MessageSquare, color: 'text-warning' },
-          { label: 'Репутация', value: profile.reputation ?? 0, icon: Star, color: 'text-success' },
-          { label: 'Вопросы', value: profile.questionCount ?? 0, icon: HelpCircle, color: 'text-purple-600' },
+          { label: 'Материалы', value: profile.materialCount ?? 0, icon: FileText, color: 'text-primary bg-primary/10' },
+          { label: 'Отзывы', value: profile.reviewCount ?? 0, icon: MessageSquare, color: 'text-warning bg-warning/10' },
+          { label: 'Репутация', value: profile.reputation ?? 0, icon: Star, color: 'text-success bg-success/10' },
+          { label: 'Вопросы', value: profile.questionCount ?? 0, icon: HelpCircle, color: 'text-purple-600 bg-purple-500/10' },
         ].map((s) => (
           <motion.div key={s.label} variants={item}>
-            <Card className="p-4 text-center">
-              <s.icon className={`mx-auto h-5 w-5 ${s.color}`} />
-              <p className="mt-1 text-2xl font-bold">{s.value}</p>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
+            <Card className="flex items-center gap-3 p-4">
+              <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl shrink-0', s.color)}>
+                <s.icon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xl font-bold leading-none">{s.value}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+              </div>
             </Card>
           </motion.div>
         ))}
@@ -191,18 +246,27 @@ export function ProfilePage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="materials">Материалы</TabsTrigger>
-          <TabsTrigger value="reviews">Отзывы</TabsTrigger>
-          <TabsTrigger value="activity">Активность</TabsTrigger>
+        <TabsList className="w-full justify-start">
+          <TabsTrigger value="materials" className="gap-1.5">
+            <FileText className="h-4 w-4" /> Материалы
+          </TabsTrigger>
+          <TabsTrigger value="reviews" className="gap-1.5">
+            <MessageSquare className="h-4 w-4" /> Отзывы
+          </TabsTrigger>
+          {isOwnProfile && (
+            <TabsTrigger value="activity" className="gap-1.5">
+              <Star className="h-4 w-4" /> Активность
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="materials">
           <motion.div variants={container} initial="hidden" animate="show" className="grid gap-4 sm:grid-cols-2">
             {!materials?.items?.length ? (
-              <p className="col-span-full py-10 text-center text-sm text-muted-foreground">
-                Материалы не найдены
-              </p>
+              <div className="col-span-full rounded-xl border border-dashed p-12 text-center">
+                <FileText className="mx-auto h-8 w-8 text-muted-foreground/50" />
+                <p className="mt-3 text-muted-foreground">Материалы не найдены</p>
+              </div>
             ) : (
               materials.items.map((m) => (
                 <motion.div key={m.id} variants={item}>
@@ -226,9 +290,10 @@ export function ProfilePage() {
         <TabsContent value="reviews">
           <motion.div variants={container} initial="hidden" animate="show" className="space-y-4">
             {!reviews?.items?.length ? (
-              <p className="py-10 text-center text-sm text-muted-foreground">
-                Отзывы не найдены
-              </p>
+              <div className="rounded-xl border border-dashed p-12 text-center">
+                <MessageSquare className="mx-auto h-8 w-8 text-muted-foreground/50" />
+                <p className="mt-3 text-muted-foreground">Отзывы не найдены</p>
+              </div>
             ) : (
               reviews.items.map((r) => (
                 <motion.div key={r.id} variants={item}>
@@ -246,9 +311,9 @@ export function ProfilePage() {
 
         <TabsContent value="activity">
           {!isOwnProfile ? (
-            <div className="py-10 text-center">
-              <MessageSquare className="mx-auto h-10 w-10 text-muted-foreground/40" />
-              <p className="mt-3 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-dashed p-12 text-center">
+              <MessageSquare className="mx-auto h-8 w-8 text-muted-foreground/50" />
+              <p className="mt-3 text-muted-foreground">
                 Активность доступна только для своего профиля
               </p>
             </div>
@@ -262,9 +327,9 @@ export function ProfilePage() {
               ))}
             </div>
           ) : !activityTimeline?.length ? (
-            <div className="py-10 text-center">
-              <MessageSquare className="mx-auto h-10 w-10 text-muted-foreground/40" />
-              <p className="mt-3 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-dashed p-12 text-center">
+              <Star className="mx-auto h-8 w-8 text-muted-foreground/50" />
+              <p className="mt-3 text-muted-foreground">
                 Нет данных об активности
               </p>
             </div>

@@ -5,6 +5,7 @@ import { trackActivity } from '../../utils/influx-writer.js';
 import { getCache, setCache, buildCacheKey, deleteCachePattern } from '../../utils/cache.js';
 import { logger } from '../../utils/logger.js';
 import { ServiceError } from '../../utils/service-error.js';
+import { notifyMultipleUsers } from '../notifications/notifications.service.js';
 
 const CACHE_TTL = 120; // 2 minutes — deadlines change frequently
 
@@ -180,24 +181,21 @@ export async function confirmDeadline(deadlineId: string, userId: string) {
 
 async function notifyEnrolledStudents(courseId: string, deadlineId: string, title: string) {
   const result = await runCypher(
-    `MATCH (s:Student)-[r:ENROLLED_IN]->(c:Course {id: $courseId})
-     WHERE r.status = 'active'
+    `MATCH (s:Student)-[:ENROLLED_IN]->(c:Course {id: $courseId})
      RETURN s.id AS id`,
     { courseId }
   );
 
   if (result.records.length === 0) return;
 
-  const redis = await getRedis();
-  const pipeline = redis.pipeline();
+  const studentIds = result.records.map((r) => r.get('id') as string).filter(Boolean);
 
-  for (const record of result.records) {
-    const studentId = record.get('id') as string;
-    pipeline.publish(
-      `notifications:${studentId}`,
-      JSON.stringify({ type: 'new_deadline', deadlineId, title, courseId })
-    );
-  }
-
-  await pipeline.exec();
+  // Persist notifications to MongoDB + Redis + Socket.io
+  await notifyMultipleUsers(
+    studentIds,
+    'DEADLINE_REMINDER',
+    'Новый дедлайн по курсу',
+    `Добавлен дедлайн: "${title}"`,
+    '/deadlines',
+  );
 }

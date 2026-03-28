@@ -20,7 +20,7 @@ export async function addFriend(userId: string, friendId: string) {
     'FRIEND_REQUEST',
     'Новая заявка в друзья',
     'Вам отправлена заявка в друзья',
-    '/friends',
+    '/friends?tab=requests',
   );
 
   return { success: true };

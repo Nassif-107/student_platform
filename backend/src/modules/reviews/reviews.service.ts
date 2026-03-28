@@ -142,13 +142,17 @@ export async function toggleHelpful(
     $inc: { 'stats.reputation': 1 },
   });
 
-  // Notify the review author
+  // Notify the review author with link to the target (course/professor)
   if (addResult.author.id.toString() !== userId) {
+    const targetLink = addResult.target.type === 'course'
+      ? `/courses/${addResult.target.id}?tab=overview`
+      : `/professors/${addResult.target.id}`;
     await createNotification(
       addResult.author.id.toString(),
       'REVIEW_HELPFUL',
       'Ваш отзыв оценили',
-      'Кто-то отметил ваш отзыв как полезный',
+      `Кто-то отметил ваш отзыв о "${addResult.target.name}" как полезный`,
+      targetLink,
     );
   }
 

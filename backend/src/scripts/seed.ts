@@ -459,13 +459,35 @@ async function seed() {
 
   // ─── 12. Notifications ────────────────────────────────
   const NotificationModel = mongoose.model('Notification');
+  // Fetch created data for notification links
+  const allMaterials = await mongoose.model('Material').find().select('_id title').lean();
+  const allQuestions = await mongoose.model('Question').find().select('_id title').lean();
+  const allDeadlines = await mongoose.model('Deadline').find().select('_id title').lean();
+  const allEvents = await mongoose.model('Event').find().select('_id title').lean();
+  const allReviews = await mongoose.model('Review').find().select('_id').lean();
+  const allGroups = await mongoose.model('Group').find().select('_id name').lean();
+
+  const notifTemplates = [
+    { type: 'MATERIAL_NEW' as const, title: 'Новый материал', message: () => `Добавлен новый конспект по вашему курсу`, link: () => allMaterials.length ? `/materials/${pick(allMaterials)._id}` : '/materials' },
+    { type: 'DEADLINE_REMINDER' as const, title: 'Приближается дедлайн', message: () => 'Через 24 часа сдача лабораторной работы', link: () => '/deadlines' },
+    { type: 'NEW_ANSWER' as const, title: 'Ответ на ваш вопрос', message: () => 'Кто-то ответил на ваш вопрос на форуме', link: () => allQuestions.length ? `/forum/${pick(allQuestions)._id}` : '/forum' },
+    { type: 'FRIEND_REQUEST' as const, title: 'Заявка в друзья', message: () => `${pick(users).name.first} хочет добавить вас в друзья`, link: () => '/friends?tab=requests' },
+    { type: 'FRIEND_ACTIVITY' as const, title: 'Активность друга', message: () => `${pick(users).name.first} загрузил новый материал`, link: () => allMaterials.length ? `/materials/${pick(allMaterials)._id}` : '/materials' },
+    { type: 'REVIEW_HELPFUL' as const, title: 'Ваш отзыв полезен', message: () => 'Кто-то отметил ваш отзыв как полезный', link: () => allReviews.length ? `/courses/${pick(courses)._id}?tab=overview` : '/courses' },
+    { type: 'GROUP_INVITE' as const, title: 'Приглашение в группу', message: () => allGroups.length ? `Вас приглашают в группу "${pick(allGroups).name}"` : 'Вас приглашают в группу', link: () => allGroups.length ? `/groups/${pick(allGroups)._id}` : '/groups' },
+    { type: 'EVENT_REMINDER' as const, title: 'Событие скоро', message: () => allEvents.length ? `Не забудьте про "${pick(allEvents).title}"` : 'Скоро начнётся событие', link: () => allEvents.length ? `/events/${pick(allEvents)._id}` : '/events' },
+    { type: 'ANSWER_ACCEPTED' as const, title: 'Ваш ответ принят', message: () => 'Автор вопроса принял ваш ответ как лучший', link: () => allQuestions.length ? `/forum/${pick(allQuestions)._id}` : '/forum' },
+  ];
+
   for (const user of users.slice(0, 5)) {
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
+      const tmpl = pick(notifTemplates);
       await NotificationModel.create({
         userId: user._id,
-        type: pick(['MATERIAL_NEW', 'DEADLINE_REMINDER', 'NEW_ANSWER', 'FRIEND_REQUEST']),
-        title: pick(['Новый материал', 'Приближается дедлайн', 'Ответ на ваш вопрос', 'Заявка в друзья']),
-        message: 'Проверьте обновления на платформе.',
+        type: tmpl.type,
+        title: tmpl.title,
+        message: tmpl.message(),
+        link: tmpl.link(),
         read: Math.random() > 0.5,
       });
     }

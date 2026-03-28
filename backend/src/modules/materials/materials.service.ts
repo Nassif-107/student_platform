@@ -12,6 +12,8 @@ import { ServiceError } from '../../utils/service-error.js';
 import { MaterialModel, type MaterialDocument } from './materials.model.js';
 import { CommentModel, type CommentDocument } from './comments.model.js';
 import { UserModel } from '../users/users.model.js';
+import { notifyMultipleUsers } from '../notifications/notifications.service.js';
+import { runCypher } from '../../config/neo4j.js';
 import type { MaterialQueryInput, CreateMaterialInput, AddCommentInput } from '@student-platform/shared';
 import type { JwtPayload } from '../../plugins/auth.plugin.js';
 
@@ -153,6 +155,28 @@ export async function createMaterial(
 
   trackActivity('material_activity', { action: 'create', type: data.type }, { count: 1 });
   await deleteCachePattern('app:cache:materials:*');
+
+  // Notify enrolled students (Neo4j query for course enrollees, exclude author)
+  try {
+    const result = await runCypher(
+      `MATCH (s:Student)-[:ENROLLED_IN]->(c:Course {id: $courseId})
+       WHERE s.id <> $authorId
+       RETURN s.id AS id LIMIT 50`,
+      { courseId: data.courseId, authorId: user.id },
+    );
+    const enrolledIds = result.records.map((r) => r.get('id') as string).filter(Boolean);
+    if (enrolledIds.length > 0) {
+      notifyMultipleUsers(
+        enrolledIds,
+        'MATERIAL_NEW',
+        'Новый материал по вашему курсу',
+        `${user.name} загрузил "${material.title}" по курсу "${data.courseTitle}"`,
+        `/materials/${material._id}`,
+      ).catch((err) => logger.error(err, '[Materials] Failed to notify enrolled students'));
+    }
+  } catch (err) {
+    logger.error(err, '[Materials] Neo4j query for enrolled students failed');
+  }
 
   return material;
 }
