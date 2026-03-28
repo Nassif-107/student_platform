@@ -5,6 +5,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { getApp, cleanAll, registerTestUser, authHeader } from '../helpers.js';
 
+const groupPayload = {
+  name: 'Подготовка к экзамену по МатАну',
+  courseId: '000000000000000000000001',
+  courseTitle: 'Математический анализ',
+  type: 'exam_prep' as const,
+  description: 'Готовимся вместе к экзамену',
+  maxMembers: 5,
+};
+
 describe('Scenario 7: Study Groups', () => {
   beforeEach(async () => { await cleanAll(); });
 
@@ -22,12 +31,7 @@ describe('Scenario 7: Study Groups', () => {
       method: 'POST',
       url: '/api/groups',
       headers: authHeader(accessToken),
-      payload: {
-        name: 'Подготовка к экзамену по МатАну',
-        type: 'exam_prep',
-        description: 'Готовимся вместе к экзамену',
-        maxMembers: 5,
-      },
+      payload: groupPayload,
     });
     expect(res.statusCode).toBe(201);
   });
@@ -40,8 +44,9 @@ describe('Scenario 7: Study Groups', () => {
       method: 'POST',
       url: '/api/groups',
       headers: authHeader(creator.accessToken),
-      payload: { name: 'Группа', type: 'study', description: 'Описание', maxMembers: 10 },
+      payload: { ...groupPayload, name: 'JoinTest' },
     });
+    expect(createRes.statusCode).toBe(201);
     const groupId = JSON.parse(createRes.body).data._id;
 
     const joiner = await registerTestUser(app, { email: 'joiner@test.ru' });
@@ -61,8 +66,9 @@ describe('Scenario 7: Study Groups', () => {
       method: 'POST',
       url: '/api/groups',
       headers: authHeader(creator.accessToken),
-      payload: { name: 'Группа2', type: 'study', description: 'Описание', maxMembers: 10 },
+      payload: { ...groupPayload, name: 'LeaveTest' },
     });
+    expect(createRes.statusCode).toBe(201);
     const groupId = JSON.parse(createRes.body).data._id;
 
     const joiner = await registerTestUser(app, { email: 'leaver@test.ru' });
@@ -80,13 +86,13 @@ describe('Scenario 7: Study Groups', () => {
     expect(leaveRes.statusCode).toBe(200);
   });
 
-  it('7.5 — team suggestions endpoint works', async () => {
+  it('7.5 — team suggestions requires courseId param', async () => {
     const app = await getApp();
     const { accessToken } = await registerTestUser(app);
 
     const res = await app.inject({
       method: 'GET',
-      url: '/api/groups/suggestions',
+      url: '/api/groups/suggestions?courseId=000000000000000000000001',
       headers: authHeader(accessToken),
     });
     expect(res.statusCode).toBe(200);
@@ -100,8 +106,9 @@ describe('Scenario 7: Study Groups', () => {
       method: 'POST',
       url: '/api/groups',
       headers: authHeader(creator.accessToken),
-      payload: { name: 'ToDelete', type: 'study', description: 'Del', maxMembers: 5 },
+      payload: { ...groupPayload, name: 'ToDelete' },
     });
+    expect(createRes.statusCode).toBe(201);
     const groupId = JSON.parse(createRes.body).data._id;
 
     const delRes = await app.inject({

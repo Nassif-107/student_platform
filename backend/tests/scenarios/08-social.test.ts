@@ -276,11 +276,28 @@ describe('Scenario 14: Analytics', () => {
     expect(res.statusCode).toBe(200);
   });
 
-  it('14.5 — platform analytics', async () => {
+  it('14.5 — platform analytics (requires admin)', async () => {
     const app = await getApp();
+    const { accessToken } = await registerTestUser(app);
+
+    // Promote to admin
+    const mongoose = (await import('mongoose')).default;
+    const UserModel = mongoose.model('User');
+    const decoded = JSON.parse(Buffer.from(accessToken.split('.')[1]!, 'base64').toString());
+    await UserModel.findByIdAndUpdate(decoded.id, { role: 'admin' });
+
+    // Re-login to get admin token
+    const loginRes = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: decoded.email, password: 'testpassword123' },
+    });
+    const adminToken = JSON.parse(loginRes.body).data.accessToken;
+
     const res = await app.inject({
       method: 'GET',
       url: '/api/analytics/platform',
+      headers: authHeader(adminToken),
     });
     expect(res.statusCode).toBe(200);
   });

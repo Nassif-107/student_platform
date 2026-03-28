@@ -74,7 +74,7 @@ describe('InfluxDB Analytics Queries', () => {
         .tag('targetType', 'course')
         .tag('runId', RUN_ID)
         .floatField('overall', 7 + i * 0.5)
-        .floatField('difficulty', 5 + i * 0.3);
+        .intField('difficulty', 5 + i);
       writeApi.writePoint(point);
     }
 

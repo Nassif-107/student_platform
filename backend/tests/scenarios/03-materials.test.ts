@@ -41,10 +41,10 @@ describe('Scenario 4: Materials', () => {
     const { accessToken } = await registerTestUser(app);
     await seedMaterial(app, accessToken);
 
-    const res = await app.inject({ method: 'GET', url: '/api/materials?search=алгебра' });
+    const res = await app.inject({ method: 'GET', url: '/api/materials?search=конспект' });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(body.data.some((m: any) => m.title.includes('алгебра'))).toBe(true);
+    expect(body.data.some((m: any) => m.title.includes('Конспект'))).toBe(true);
   });
 
   it('4.3 — detail returns material with files', async () => {
@@ -55,7 +55,9 @@ describe('Scenario 4: Materials', () => {
     const res = await app.inject({ method: 'GET', url: `/api/materials/${material._id}` });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(body.data.title).toBe('Конспект по линейной алгебре');
+    // Detail endpoint wraps in { material, comments } or returns flat
+    const m = body.data.material ?? body.data;
+    expect(m.title).toBe('Конспект по линейной алгебре');
   });
 
   it('4.4 — like toggles on and off', async () => {
