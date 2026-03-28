@@ -89,8 +89,8 @@ export function NewListingPage() {
       toast({ title: 'Объявление опубликовано', variant: 'success' })
       navigate(ROUTES.MARKETPLACE)
     },
-    onError: () => {
-      toast({ title: 'Ошибка при публикации', variant: 'error' })
+    onError: (err) => {
+      toast({ title: 'Ошибка при публикации', description: err instanceof Error ? err.message : undefined, variant: 'error' })
     },
   })
 

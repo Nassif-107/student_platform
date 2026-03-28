@@ -137,7 +137,7 @@ export function FriendsPage() {
       toast({ title: 'Запрос отправлен', variant: 'success' })
       setPendingUserId(null)
     },
-    onError: () => { toast({ title: 'Ошибка', description: 'Не удалось отправить запрос', variant: 'error' }); setPendingUserId(null) },
+    onError: (err) => { toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось отправить запрос', variant: 'error' }); setPendingUserId(null) },
   })
 
   const acceptRequestMutation = useMutation({
@@ -149,7 +149,7 @@ export function FriendsPage() {
       toast({ title: 'Друг добавлен', variant: 'success' })
       setPendingUserId(null)
     },
-    onError: () => { toast({ title: 'Ошибка', description: 'Не удалось принять запрос', variant: 'error' }); setPendingUserId(null) },
+    onError: (err) => { toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось принять запрос', variant: 'error' }); setPendingUserId(null) },
   })
 
   const rejectRequestMutation = useMutation({
@@ -160,7 +160,7 @@ export function FriendsPage() {
       toast({ title: 'Запрос отклонён', variant: 'success' })
       setPendingUserId(null)
     },
-    onError: () => { toast({ title: 'Ошибка', description: 'Не удалось отклонить запрос', variant: 'error' }); setPendingUserId(null) },
+    onError: (err) => { toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось отклонить запрос', variant: 'error' }); setPendingUserId(null) },
   })
 
   const removeFriendMutation = useMutation({
@@ -171,7 +171,7 @@ export function FriendsPage() {
       toast({ title: 'Друг удалён', variant: 'success' })
       setPendingUserId(null)
     },
-    onError: () => { toast({ title: 'Ошибка', description: 'Не удалось удалить друга', variant: 'error' }); setPendingUserId(null) },
+    onError: (err) => { toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось удалить друга', variant: 'error' }); setPendingUserId(null) },
   })
 
   const friendsList = friends?.items ?? []

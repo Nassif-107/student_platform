@@ -96,7 +96,7 @@ export function GroupsPage() {
       toast({ title: 'Вы вступили в группу', variant: 'success' })
       setJoiningGroupId(null)
     },
-    onError: () => { toast({ title: 'Ошибка', description: 'Не удалось вступить в группу', variant: 'error' }); setJoiningGroupId(null) },
+    onError: (err) => { toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось вступить в группу', variant: 'error' }); setJoiningGroupId(null) },
   })
 
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<CreateGroupForm>({
@@ -123,7 +123,7 @@ export function GroupsPage() {
       toast({ title: 'Группа создана', variant: 'success' })
       navigate(ROUTES.GROUP_DETAIL(created.id))
     },
-    onError: () => toast({ title: 'Ошибка', description: 'Не удалось создать группу', variant: 'error' }),
+    onError: (err) => toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось создать группу', variant: 'error' }),
   })
 
   const isMember = (group: Group) => (group.members ?? []).some((m) => m.userId === user?.id)

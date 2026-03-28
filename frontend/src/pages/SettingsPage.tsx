@@ -92,8 +92,8 @@ export function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['profile'] })
       toast({ title: 'Настройки сохранены', variant: 'success' })
     },
-    onError: () => {
-      toast({ title: 'Ошибка сохранения', variant: 'error' })
+    onError: (err) => {
+      toast({ title: 'Ошибка сохранения', description: err instanceof Error ? err.message : undefined, variant: 'error' })
     },
   })
 

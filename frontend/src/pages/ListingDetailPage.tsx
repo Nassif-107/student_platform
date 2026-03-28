@@ -71,8 +71,8 @@ export function ListingDetailPage() {
       setContactOpen(false)
       setMessage('')
     },
-    onError: () => {
-      toast({ title: 'Ошибка', description: 'Не удалось отправить сообщение', variant: 'error' })
+    onError: (err) => {
+      toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось отправить сообщение', variant: 'error' })
     },
   })
 
@@ -83,8 +83,8 @@ export function ListingDetailPage() {
       toast({ title: 'Объявление удалено', variant: 'success' })
       navigate(ROUTES.MARKETPLACE)
     },
-    onError: () => {
-      toast({ title: 'Ошибка', description: 'Не удалось удалить объявление', variant: 'error' })
+    onError: (err) => {
+      toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось удалить объявление', variant: 'error' })
     },
   })
 

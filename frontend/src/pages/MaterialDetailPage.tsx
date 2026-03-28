@@ -54,9 +54,9 @@ export function MaterialDetailPage() {
       if (url) window.open(url, '_blank')
       else throw new Error('no url')
     },
-    onError: () => {
+    onError: (err) => {
       if (material?.fileUrl) window.open(material.fileUrl, '_blank')
-      else toast({ title: 'Ошибка', description: 'Не удалось скачать файл', variant: 'error' })
+      else toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось скачать файл', variant: 'error' })
     },
   })
 

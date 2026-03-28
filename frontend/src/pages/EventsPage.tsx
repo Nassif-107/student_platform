@@ -178,8 +178,8 @@ export function EventsPage() {
       queryClient.invalidateQueries({ queryKey: ['events'] })
       setTogglingEventId(null)
     },
-    onError: () => {
-      toast({ title: 'Ошибка', description: 'Не удалось изменить регистрацию', variant: 'error' })
+    onError: (err) => {
+      toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось изменить регистрацию', variant: 'error' })
       setTogglingEventId(null)
     },
   })
@@ -217,7 +217,7 @@ export function EventsPage() {
       setDialogOpen(false)
       reset()
     },
-    onError: () => toast({ title: 'Ошибка создания события', variant: 'error' }),
+    onError: (err) => toast({ title: 'Ошибка создания события', description: err instanceof Error ? err.message : undefined, variant: 'error' }),
   })
 
   const events = data?.items ?? []

@@ -171,8 +171,8 @@ export function LoginPage() {
                 try {
                   await api.post('/auth/forgot-password', { email: forgotEmail })
                   setForgotSent(true)
-                } catch {
-                  toast({ title: 'Ошибка', description: 'Не удалось отправить запрос', variant: 'error' })
+                } catch (err) {
+                  toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось отправить запрос', variant: 'error' })
                 } finally {
                   setForgotLoading(false)
                 }

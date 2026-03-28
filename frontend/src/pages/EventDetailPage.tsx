@@ -53,8 +53,8 @@ export function EventDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['event-participants', id] })
       queryClient.invalidateQueries({ queryKey: ['events'] })
     },
-    onError: () => {
-      toast({ title: 'Ошибка', description: 'Не удалось изменить регистрацию', variant: 'error' })
+    onError: (err) => {
+      toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось изменить регистрацию', variant: 'error' })
     },
   })
 

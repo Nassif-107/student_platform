@@ -77,8 +77,8 @@ export function CourseDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['course-students', id] })
       toast({ title: 'Вы записались на курс', variant: 'success' })
     },
-    onError: () => {
-      toast({ title: 'Ошибка', description: 'Не удалось записаться на курс', variant: 'error' })
+    onError: (err) => {
+      toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось записаться на курс', variant: 'error' })
     },
   })
 

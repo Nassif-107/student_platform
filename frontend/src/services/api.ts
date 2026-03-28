@@ -155,8 +155,9 @@ class ApiClient {
     if (!response.ok) {
       let message = 'Произошла ошибка при выполнении запроса'
       try {
-        const errorBody = (await response.json()) as ApiError
-        message = errorBody.message ?? message
+        const errorBody = await response.json()
+        // Backend format: { success: false, error: { code, message } }
+        message = errorBody?.error?.message ?? errorBody?.message ?? message
       } catch {
         // could not parse error body
       }

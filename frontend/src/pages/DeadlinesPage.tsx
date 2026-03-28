@@ -83,8 +83,8 @@ export function DeadlinesPage() {
       setCourseId('')
       setDueDate('')
     },
-    onError: () => {
-      toast({ title: 'Ошибка', description: 'Не удалось создать дедлайн', variant: 'error' })
+    onError: (err) => {
+      toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось создать дедлайн', variant: 'error' })
     },
   })
 

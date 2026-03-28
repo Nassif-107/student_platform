@@ -135,9 +135,9 @@ export function EditProfilePage() {
       queryClient.invalidateQueries({ queryKey: ['profile'] })
       toast({ title: 'Аватар обновлён', variant: 'success' })
     },
-    onError: () => {
+    onError: (err) => {
       setAvatarPreview(null)
-      toast({ title: 'Ошибка', description: 'Не удалось обновить аватар', variant: 'error' })
+      toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось обновить аватар', variant: 'error' })
     },
   })
 

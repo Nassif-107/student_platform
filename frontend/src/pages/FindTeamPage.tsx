@@ -81,8 +81,8 @@ export function FindTeamPage() {
         skills: skills.length > 0 ? skills : undefined,
       })
       setResults((data.items ?? []) as Teammate[])
-    } catch {
-      toast({ title: 'Ошибка', description: 'Не удалось выполнить поиск', variant: 'error' })
+    } catch (err) {
+      toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось выполнить поиск', variant: 'error' })
     } finally {
       setIsSearching(false)
     }
@@ -98,7 +98,7 @@ export function FindTeamPage() {
       toast({ title: 'Запрос отправлен', variant: 'success' })
       setAddingFriendId(null)
     },
-    onError: () => { toast({ title: 'Ошибка', description: 'Не удалось отправить запрос', variant: 'error' }); setAddingFriendId(null) },
+    onError: (err) => { toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось отправить запрос', variant: 'error' }); setAddingFriendId(null) },
   })
 
   return (

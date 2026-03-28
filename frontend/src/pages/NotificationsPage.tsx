@@ -127,7 +127,7 @@ export function NotificationsPage() {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
       resetUnreadCount()
     },
-    onError: () => toast({ title: 'Ошибка', description: 'Не удалось отметить уведомления', variant: 'error' }),
+    onError: (err) => toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось отметить уведомления', variant: 'error' }),
   })
 
   const markOneMutation = useMutation({
@@ -136,7 +136,7 @@ export function NotificationsPage() {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
       setUnreadCount(Math.max(0, useNotificationStore.getState().unreadCount - 1))
     },
-    onError: () => toast({ title: 'Ошибка', description: 'Не удалось отметить уведомление', variant: 'error' }),
+    onError: (err) => toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось отметить уведомление', variant: 'error' }),
   })
 
   const handleClick = useCallback(

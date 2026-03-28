@@ -71,7 +71,7 @@ export function QuestionDetailPage() {
       reset()
       toast({ title: 'Ответ опубликован', variant: 'success' })
     },
-    onError: () => toast({ title: 'Ошибка', description: 'Не удалось опубликовать ответ', variant: 'error' }),
+    onError: (err) => toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось опубликовать ответ', variant: 'error' }),
   })
 
   const voteMutation = useMutation({
@@ -111,7 +111,7 @@ export function QuestionDetailPage() {
       if (context?.previous) {
         queryClient.setQueryData(['forum-question', id], context.previous)
       }
-      toast({ title: 'Ошибка', description: 'Не удалось проголосовать', variant: 'error' })
+      toast({ title: 'Ошибка', description: _err instanceof Error ? _err.message : 'Не удалось проголосовать', variant: 'error' })
       setVotingAnswerId(null)
     },
     onSettled: () => {
@@ -146,7 +146,7 @@ export function QuestionDetailPage() {
       if (context?.previous) {
         queryClient.setQueryData(['forum-question', id], context.previous)
       }
-      toast({ title: 'Ошибка', description: 'Не удалось принять ответ', variant: 'error' })
+      toast({ title: 'Ошибка', description: _err instanceof Error ? _err.message : 'Не удалось принять ответ', variant: 'error' })
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['forum-question', id] })

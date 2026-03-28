@@ -47,7 +47,7 @@ export function GroupDetailPage() {
       toast({ title: 'Вы покинули группу', variant: 'success' })
       navigate(ROUTES.GROUPS)
     },
-    onError: () => toast({ title: 'Ошибка', description: 'Не удалось покинуть группу', variant: 'error' }),
+    onError: (err) => toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось покинуть группу', variant: 'error' }),
   })
 
   const closeGroupMutation = useMutation({
@@ -57,8 +57,8 @@ export function GroupDetailPage() {
       toast({ title: 'Группа закрыта', variant: 'success' })
       navigate(ROUTES.GROUPS)
     },
-    onError: () => {
-      toast({ title: 'Ошибка', description: 'Не удалось закрыть группу', variant: 'error' })
+    onError: (err) => {
+      toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось закрыть группу', variant: 'error' })
     },
   })
 
