@@ -115,4 +115,11 @@ export const analyticsService = {
         rank: number
       }>
     >(`/analytics/leaderboard${buildQueryString({ period })}`),
+
+  getCourseAnalytics: (courseId: string) =>
+    api.get<{
+      ratingTrend?: Array<{ semester: string; avgRating: number }>
+      difficultyTrend?: Array<{ semester: string; avgDifficulty: number }>
+      materialActivity?: Array<{ date: string; count: number }>
+    }>(`/analytics/course/${courseId}`),
 }

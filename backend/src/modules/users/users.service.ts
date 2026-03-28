@@ -1,5 +1,5 @@
 import { UserModel, type UserDocument } from './users.model.js';
-import { updateStudentNode } from './users.graph.js';
+import { updateStudentNode, deleteStudentNode } from './users.graph.js';
 import { getCache, setCache, deleteCache, buildCacheKey } from '../../utils/cache.js';
 import { getInfluxQueryApi } from '../../config/influx.js';
 import { sanitizeIdForFlux } from '../../utils/validate-id.js';
@@ -160,6 +160,22 @@ export async function searchUsers(
   ]);
 
   return { items, total };
+}
+
+export async function deleteAccount(userId: string): Promise<void> {
+  const user = await UserModel.findById(userId);
+  if (!user) {
+    throw new ServiceError('Пользователь не найден', 'NOT_FOUND');
+  }
+
+  // Remove from all databases
+  await Promise.all([
+    UserModel.findByIdAndDelete(userId),
+    deleteStudentNode(userId),
+    deleteCache(buildCacheKey('user', userId)),
+  ]);
+
+  logger.info('[Users] Account deleted: %s', userId);
 }
 
 /**

@@ -116,6 +116,12 @@ export function FriendsPage() {
     enabled: activeTab === 'suggestions',
   })
 
+  const { data: classmates, isLoading: classmatesLoading } = useQuery({
+    queryKey: ['classmates'],
+    queryFn: () => socialService.getClassmates(),
+    enabled: activeTab === 'classmates',
+  })
+
   const { data: searchResults, isLoading: searchLoading } = useQuery({
     queryKey: ['user-search', debouncedSearch],
     queryFn: () => socialService.searchUsers(debouncedSearch),
@@ -235,6 +241,7 @@ export function FriendsPage() {
               Запросы{requests?.length ? ` (${requests.length})` : ''}
             </TabsTrigger>
             <TabsTrigger value="suggestions">Рекомендации</TabsTrigger>
+            <TabsTrigger value="classmates">Однокурсники</TabsTrigger>
           </TabsList>
 
           <TabsContent value="friends" className="space-y-3">
@@ -358,6 +365,47 @@ export function FriendsPage() {
                       >
                         {pendingUserId === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} Добавить
                       </Button>
+                    }
+                  />
+                ))}
+              </motion.div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="classmates" className="space-y-3">
+            {classmatesLoading ? (
+              Array.from({ length: 4 }, (_, i) => <UserSkeleton key={i} />)
+            ) : !classmates?.length ? (
+              <div className="flex flex-col items-center py-16">
+                <Users className="h-12 w-12 text-muted-foreground/50" />
+                <p className="mt-4 text-muted-foreground">Однокурсники не найдены</p>
+                <p className="mt-1 text-xs text-muted-foreground">Запишитесь на курсы, чтобы увидеть однокурсников</p>
+              </div>
+            ) : (
+              <motion.div variants={container} initial="hidden" animate="show" className="space-y-2">
+                {classmates.map((user: FriendUser) => (
+                  <UserCard
+                    key={user.id}
+                    user={user}
+                    actions={
+                      <>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title="Профиль"
+                          onClick={() => navigate(ROUTES.PROFILE(user.id))}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => sendRequestMutation.mutate(user.id)}
+                          disabled={pendingUserId === user.id}
+                        >
+                          {pendingUserId === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} Добавить
+                        </Button>
+                      </>
                     }
                   />
                 ))}

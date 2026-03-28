@@ -52,7 +52,14 @@ export function HomePage() {
 
   const { data: recommendations, isLoading: loadingRecs } = useQuery({
     queryKey: ['courses', 'recommended'],
-    queryFn: () => coursesService.getCourses({ sortBy: 'enrolledCount', sortOrder: 'desc', limit: 5 }),
+    queryFn: async () => {
+      try {
+        const recs = await coursesService.getRecommendations()
+        if (recs.length > 0) return recs
+      } catch { /* fallback to popular */ }
+      const popular = await coursesService.getCourses({ sortBy: 'enrolledCount', sortOrder: 'desc', limit: 5 })
+      return popular.items ?? []
+    },
   })
 
   const { data: stats, isLoading: loadingStats } = useQuery({
@@ -291,13 +298,13 @@ export function HomePage() {
               Array.from({ length: 3 }).map((_, i) => (
                 <Skeleton key={i} className="h-16 rounded-lg" />
               ))
-            ) : !recommendations?.items?.length ? (
+            ) : !recommendations?.length ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 Нет рекомендаций
               </p>
             ) : (
               <motion.div variants={container} initial="hidden" animate="show" className="space-y-3">
-                {recommendations.items.slice(0, 5).map((c) => (
+                {recommendations.slice(0, 5).map((c) => (
                   <motion.div
                     key={c.id}
                     variants={item}

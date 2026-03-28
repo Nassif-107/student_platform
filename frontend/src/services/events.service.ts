@@ -106,4 +106,14 @@ export const eventsService = {
         avatarUrl?: string
       }>
     >(`/events/${id}/participants`),
+
+  getAttendingFriends: (id: string) =>
+    api.get<
+      Array<{
+        id: string
+        firstName: string
+        lastName: string
+        avatar?: string
+      }>
+    >(`/events/${id}/friends`),
 }

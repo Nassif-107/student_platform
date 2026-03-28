@@ -137,6 +137,14 @@ export async function uploadAvatar(
   return reply.send(success({ avatar: avatarPath }));
 }
 
+export async function deleteAccount(
+  req: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  await usersService.deleteAccount(req.user.id);
+  return reply.send(success({ message: 'Аккаунт удалён' }));
+}
+
 interface SearchQuery {
   q?: string;
   page?: string;

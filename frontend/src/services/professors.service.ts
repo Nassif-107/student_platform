@@ -88,4 +88,14 @@ export const professorsService = {
     const raw = await api.get<unknown>(`/professors/${id}/reviews${buildQueryString(params)}`)
     return mapPaginatedResponse(raw, mapProfessorReview)
   },
+
+  getProfessorCourses: async (id: string): Promise<Array<{ id: string; title: string; code: string }>> => {
+    const raw = await api.get<any>(`/professors/${id}/courses`)
+    const items = Array.isArray(raw) ? raw : (raw?.items ?? [])
+    return items.map((c: any) => ({
+      id: c.id ?? c._id ?? '',
+      title: c.title ?? c.name ?? '',
+      code: c.code ?? '',
+    }))
+  },
 }

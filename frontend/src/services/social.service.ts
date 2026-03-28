@@ -182,4 +182,9 @@ export const socialService = {
     const raw = await api.get<any[]>('/social/suggestions')
     return (raw ?? []).map(mapFriendNode)
   },
+
+  getClassmates: async () => {
+    const raw = await api.get<any[]>('/social/classmates')
+    return (raw ?? []).map(mapFriendNode)
+  },
 }

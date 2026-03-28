@@ -66,6 +66,7 @@ export const ROUTES = {
   NEW_LISTING: '/marketplace/new',
   LISTING_DETAIL: (id: string) => `/marketplace/${id}`,
   EVENTS: '/events',
+  EVENT_DETAIL: (id: string) => `/events/${id}`,
   ANALYTICS: '/analytics',
   FRIENDS: '/friends',
   NOTIFICATIONS: '/notifications',

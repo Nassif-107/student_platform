@@ -105,4 +105,25 @@ export const coursesService = {
     const raw = await api.get<unknown[]>(`/courses/${id}/students`)
     return (raw ?? []).map(mapCourseStudent)
   },
+
+  getCourseMaterials: async (id: string, params?: { page?: number; limit?: number }): Promise<PaginatedResponse<unknown>> => {
+    const raw = await api.get<unknown>(`/courses/${id}/materials${buildQueryString(params)}`)
+    return mapPaginatedResponse(raw, (r) => r)
+  },
+
+  getCourseQuestions: async (id: string, params?: { page?: number; limit?: number }): Promise<PaginatedResponse<unknown>> => {
+    const raw = await api.get<unknown>(`/courses/${id}/questions${buildQueryString(params)}`)
+    return mapPaginatedResponse(raw, (r) => r)
+  },
+
+  getCourseDeadlines: async (id: string): Promise<unknown[]> => {
+    const raw = await api.get<unknown[]>(`/courses/${id}/deadlines`)
+    return Array.isArray(raw) ? raw : []
+  },
+
+  getRecommendations: async (): Promise<Course[]> => {
+    const raw = await api.get<unknown>('/courses/recommendations')
+    const items = Array.isArray(raw) ? raw : ((raw as any)?.items ?? [])
+    return items.map(mapCourse)
+  },
 }

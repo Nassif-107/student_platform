@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { PageTransition } from '@/components/shared/PageTransition'
@@ -47,7 +48,7 @@ import { useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/cn'
 import { formatDateTime } from '@/lib/format-date'
 import { useAuth } from '@/hooks/useAuth'
-import { DEFAULT_PAGE_SIZE } from '@/lib/constants'
+import { ROUTES } from '@/lib/constants'
 import { eventsService } from '@/services/events.service'
 import type { Event, EventsParams, CreateEventData } from '@/services/events.service'
 
@@ -110,7 +111,9 @@ function EventCard({ event, onToggle, userId, isToggling }: { event: Event; onTo
           </Badge>
         </div>
         <div className="p-4 space-y-2.5">
-          <h3 className="font-semibold text-foreground line-clamp-2">{event.title}</h3>
+          <Link to={ROUTES.EVENT_DETAIL(event.id)} className="hover:text-primary transition-colors">
+            <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">{event.title}</h3>
+          </Link>
           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <CalendarDays className="h-3.5 w-3.5" />
             <span>{formatDateTime(event.date)}{event.time ? ` ${event.time}` : ''}</span>
@@ -163,8 +166,8 @@ export function EventsPage() {
     sortOrder: 'asc',
   }
 
-  const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['events', search, typeFilter, page],
+  const { data, isLoading } = useQuery({
+    queryKey: ['events', search, typeFilter],
     queryFn: () => eventsService.getEvents(params),
   })
 

@@ -18,6 +18,9 @@ export const usersRoutes: FastifyPluginAsync = async (app) => {
   // POST /users/me/avatar — upload avatar (authenticated) — BEFORE /:id
   app.post('/me/avatar', { preHandler: [authenticate] }, usersController.uploadAvatar as RouteHandlerMethod);
 
+  // DELETE /users/me — delete own account (authenticated) — BEFORE /:id
+  app.delete('/me', { preHandler: [authenticate] }, usersController.deleteAccount as RouteHandlerMethod);
+
   // GET /users/search — search users by query — BEFORE /:id
   app.get('/search', usersController.searchUsers as RouteHandlerMethod);
 

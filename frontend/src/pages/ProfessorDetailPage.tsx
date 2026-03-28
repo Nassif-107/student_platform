@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
@@ -7,6 +7,7 @@ import {
   Mail,
   MessageSquare,
   ArrowLeft,
+  BookOpen,
 } from 'lucide-react'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { ReviewCard } from '@/components/shared/ReviewCard'
+import { CreateReviewDialog } from '@/components/shared/CreateReviewDialog'
 import { professorsService, type ProfessorReview } from '@/services/professors.service'
 import { formatNumber } from '@/lib/format-number'
 import { PageTransition } from '@/components/shared/PageTransition'
@@ -36,6 +38,12 @@ export function ProfessorDetailPage() {
   const { data: reviews } = useQuery({
     queryKey: ['professor-reviews', id],
     queryFn: () => professorsService.getProfessorReviews(id!),
+    enabled: !!id,
+  })
+
+  const { data: courses } = useQuery({
+    queryKey: ['professor-courses', id],
+    queryFn: () => professorsService.getProfessorCourses(id!),
     enabled: !!id,
   })
 
@@ -158,15 +166,56 @@ export function ProfessorDetailPage() {
         </motion.div>
       )}
 
+      {/* Courses Taught */}
+      {courses && courses.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <BookOpen className="h-5 w-5 text-primary" />
+                Преподаёт курсы ({courses.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {courses.map((c) => (
+                <Link
+                  key={c.id}
+                  to={ROUTES.COURSE_DETAIL(c.id)}
+                  className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-accent"
+                >
+                  <div>
+                    <p className="font-medium text-sm">{c.title}</p>
+                    <p className="text-xs text-muted-foreground">{c.code}</p>
+                  </div>
+                  <BookOpen className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              ))}
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
       {/* Reviews */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <h2 className="mb-4 text-lg font-semibold text-foreground">
-          Отзывы студентов
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-foreground">
+            Отзывы студентов
+          </h2>
+          <CreateReviewDialog
+            targetType="professor"
+            targetId={id!}
+            targetName={`${professor.lastName} ${professor.firstName} ${professor.middleName ?? ''}`.trim()}
+            invalidateKeys={[['professor-reviews', id], ['professor', id]]}
+          />
+        </div>
         {!reviews?.items?.length ? (
           <div className="rounded-xl border border-dashed p-12 text-center">
             <MessageSquare className="mx-auto h-8 w-8 text-muted-foreground/50" />

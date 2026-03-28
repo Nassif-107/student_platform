@@ -107,6 +107,9 @@ const ListingDetailPage = lazy(() =>
 const EventsPage = lazy(() =>
   import('@/pages/EventsPage').then((m) => ({ default: m.EventsPage })),
 )
+const EventDetailPage = lazy(() =>
+  import('@/pages/EventDetailPage').then((m) => ({ default: m.EventDetailPage })),
+)
 const AnalyticsPage = lazy(() =>
   import('@/pages/AnalyticsPage').then((m) => ({
     default: m.AnalyticsPage,
@@ -182,6 +185,7 @@ export function App() {
                   <Route path="/marketplace/new" element={<NewListingPage />} />
                   <Route path="/marketplace/:id" element={<ListingDetailPage />} />
                   <Route path="/events" element={<EventsPage />} />
+                  <Route path="/events/:id" element={<EventDetailPage />} />
                   <Route path="/analytics" element={<AnalyticsPage />} />
                   <Route path="/friends" element={<FriendsPage />} />
                   <Route path="/notifications" element={<NotificationsPage />} />

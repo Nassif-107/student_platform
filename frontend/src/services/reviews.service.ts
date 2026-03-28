@@ -31,15 +31,32 @@ export interface ReviewsParams {
   sortOrder?: 'asc' | 'desc'
 }
 
+/** Converts frontend-friendly params to backend query format */
+function toBackendParams(params?: ReviewsParams): Record<string, string | number | undefined> {
+  if (!params) return {}
+  const { courseId, professorId, authorId, page, limit, sortBy } = params
+  return {
+    targetType: courseId ? 'course' : professorId ? 'professor' : undefined,
+    targetId: courseId ?? professorId,
+    authorId,
+    page,
+    limit,
+    sort: sortBy === 'likeCount' ? 'helpful' : 'newest',
+  }
+}
+
 export interface CreateReviewData {
   targetType: 'course' | 'professor'
   targetId: string
-  rating: number
-  difficulty: number
-  usefulness: number
+  targetName: string
+  ratings: {
+    overall: number
+    difficulty: number
+    usefulness?: number
+  }
   text: string
   semester: string
-  isAnonymous: boolean
+  anonymous: boolean
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -68,7 +85,7 @@ function mapReview(raw: any): Review {
 
 export const reviewsService = {
   getReviews: async (params?: ReviewsParams): Promise<PaginatedResponse<Review>> => {
-    const raw = await api.get<unknown>(`/reviews${buildQueryString(params)}`)
+    const raw = await api.get<unknown>(`/reviews${buildQueryString(toBackendParams(params))}`)
     return mapPaginatedResponse(raw, mapReview)
   },
 
