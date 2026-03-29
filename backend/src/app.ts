@@ -70,8 +70,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   });
 
   // --- Static file serving (uploaded materials, forum attachments, avatars) ---
+  // resolve from process.cwd() to handle both relative and absolute UPLOAD_DIR
+  const uploadRoot = env.UPLOAD_DIR.startsWith('/') ? env.UPLOAD_DIR : resolve(process.cwd(), env.UPLOAD_DIR);
   await app.register(fastifyStatic, {
-    root: resolve(env.UPLOAD_DIR),
+    root: uploadRoot,
     prefix: '/uploads/',
     decorateReply: false,
   });

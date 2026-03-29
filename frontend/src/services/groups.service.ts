@@ -124,4 +124,16 @@ export const groupsService = {
     const raw = await api.get<unknown>(`/groups/suggestions${buildQueryString(params)}`)
     return mapPaginatedResponse(raw, mapGroupMember)
   },
+
+  getChatMessages: async (groupId: string, limit = 50): Promise<Array<{
+    id: string
+    userId: string
+    userName: string
+    text: string
+    timestamp: string
+    isMine: boolean
+  }>> => {
+    const raw = await api.get<any>(`/groups/${groupId}/messages?limit=${limit}`)
+    return Array.isArray(raw) ? raw : (raw?.items ?? raw?.data ?? [])
+  },
 }

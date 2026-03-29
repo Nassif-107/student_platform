@@ -34,6 +34,7 @@ beforeAll(async () => {
     ['Review', '../src/modules/reviews/reviews.model.js'],
     ['Question', '../src/modules/forum/forum.model.js'],
     ['Group', '../src/modules/groups/groups.model.js'],
+    ['ChatMessage', '../src/modules/groups/chat.model.js'],
     ['Deadline', '../src/modules/deadlines/deadlines.model.js'],
     ['Listing', '../src/modules/marketplace/marketplace.model.js'],
     ['Event', '../src/modules/events/events.model.js'],

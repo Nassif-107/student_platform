@@ -248,6 +248,9 @@ export async function voteAnswer(answerId: string, userId: string, value: 1 | -1
     );
   }
 
+  // Invalidate question cache so refetch gets fresh answer vote counts
+  await deleteCachePattern(`app:cache:forum:question:${answer.questionId}*`);
+
   return { votes: answer.votes };
 }
 
@@ -343,7 +346,10 @@ export async function voteQuestion(questionId: string, userId: string, value: 1 
     );
   }
 
-  return { voted: value, delta: voteDelta };
+  // Invalidate question cache so refetch gets fresh vote count
+  await deleteCachePattern(`app:cache:forum:question:${questionId}*`);
+
+  return { voted: value, delta: voteDelta, votes: updated?.votes ?? 0 };
 }
 
 // ---------- Helpers ----------

@@ -5,6 +5,7 @@ import { validateFileType } from '../../utils/file-validation.js';
 import { saveUploadedFiles, type BufferedFile } from '../../utils/file-upload.js';
 import * as forumService from './forum.service.js';
 import { UserModel } from '../users/users.model.js';
+import { getRedis } from '../../config/redis.js';
 
 const FORUM_ALLOWED_MIMES = [
   'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf',
@@ -81,16 +82,43 @@ export async function getQuestion(
   const answersPage = request.query.answersPage ? Number(request.query.answersPage) : 1;
   const answersLimit = request.query.answersLimit ? Number(request.query.answersLimit) : 20;
 
+  // Optional JWT for per-user isVoted
+  let currentUserId: string | undefined;
+  try { await request.jwtVerify(); currentUserId = request.user?.id; } catch { /* public */ }
+
   const result = await forumService.getQuestionById(id, answersPage, answersLimit);
   if (!result) {
     return reply.code(404).send(error('NOT_FOUND', 'Вопрос не найден'));
   }
 
-  const r = result as { question: unknown; answers: unknown[]; answersPage: number; answersLimit: number; totalAnswers: number };
+  const r = result as { question: Record<string, unknown>; answers: Array<Record<string, unknown>>; answersPage: number; answersLimit: number; totalAnswers: number };
+
+  // Compute isVoted for question (stored in Redis)
+  if (currentUserId) {
+    try {
+      const redis = await getRedis();
+      const voteVal = await redis.get(`question:vote:${id}:${currentUserId}`);
+      r.question.isVoted = voteVal ? (Number(voteVal) === 1 ? 'up' : 'down') : null;
+    } catch { /* Redis error — skip */ }
+  }
+
+  // Compute isVoted for each answer from votedBy array, then strip votedBy
+  const answers = r.answers.map((a) => {
+    const answer = { ...a };
+    if (currentUserId && Array.isArray(a.votedBy)) {
+      const entry = (a.votedBy as Array<{ userId: unknown; value: number }>).find(
+        (v) => String(v.userId) === currentUserId,
+      );
+      answer.isVoted = entry ? (entry.value === 1 ? 'up' : 'down') : null;
+    }
+    delete answer.votedBy;
+    return answer;
+  });
+
   return reply.send(
     success({
       question: r.question,
-      answers: r.answers,
+      answers,
       answersPagination: {
         page: r.answersPage,
         limit: r.answersLimit,

@@ -4,6 +4,9 @@ import jwt from 'jsonwebtoken';
 import { env } from './env.js';
 import { logger } from '../utils/logger.js';
 import { setOnline, setOffline } from '../utils/presence.js';
+import { ChatMessageModel } from '../modules/groups/chat.model.js';
+import { UserModel } from '../modules/users/users.model.js';
+import { formatFullName } from '../utils/format.js';
 
 let io: SocketIOServer | null = null;
 
@@ -68,18 +71,25 @@ export function setupSocket(httpServer: HttpServer): SocketIOServer {
     const user = socket.data.user as SocketUser;
     logger.info(`[Socket.io] User connected: ${user.id}`);
 
-    // Join user to their personal room
-    socket.join(`user:${user.id}`);
+    // Fetch display name async — store as a promise so message handlers can await it
+    const userNameReady = (async () => {
+      try {
+        const dbUser = await UserModel.findById(user.id).select('name').lean();
+        socket.data.userName = dbUser ? formatFullName(dbUser.name) : user.email.split('@')[0];
+      } catch {
+        socket.data.userName = user.email.split('@')[0];
+      }
+      return socket.data.userName as string;
+    })();
 
-    // Mark user as online in Redis
+    // Register all handlers synchronously (no race condition)
+    socket.join(`user:${user.id}`);
     setOnline(user.id);
 
-    // Heartbeat: renew presence on each ping
     socket.on('heartbeat', () => {
       setOnline(user.id);
     });
 
-    // Group chat rooms
     socket.on('join-group', (groupId: string) => {
       socket.join(`group:${groupId}`);
     });
@@ -88,16 +98,37 @@ export function setupSocket(httpServer: HttpServer): SocketIOServer {
       socket.leave(`group:${groupId}`);
     });
 
-    socket.on('group-message', (data: { groupId: string; id: string; text: string; timestamp: string }) => {
+    socket.on('group-message', async (data: { groupId: string; text: string }) => {
       const sanitized = sanitizeText(data.text);
       if (!sanitized) return;
 
-      socket.to(`group:${data.groupId}`).emit('group-message', {
-        id: data.id,
-        userId: user.id,
-        text: sanitized,
-        timestamp: data.timestamp,
-      });
+      // Await userName to be ready (resolved once on connect, instant after first message)
+      const userName = await userNameReady;
+
+      // Persist to MongoDB
+      try {
+        const doc = await ChatMessageModel.create({
+          groupId: data.groupId,
+          userId: user.id,
+          userName,
+          text: sanitized,
+        });
+
+        const msg = {
+          id: doc._id.toString(),
+          userId: user.id,
+          userName: doc.userName,
+          text: sanitized,
+          timestamp: doc.createdAt.toISOString(),
+        };
+
+        // Broadcast to all group members including sender
+        socket.to(`group:${data.groupId}`).emit('group-message', msg);
+        socket.emit('group-message', { ...msg, isMine: true });
+      } catch (err) {
+        logger.error(err, '[Socket.io] Failed to save group message');
+        socket.emit('group-message-error', { text: data.text, error: 'Не удалось отправить сообщение' });
+      }
     });
 
     socket.on('disconnect', (reason) => {

@@ -142,35 +142,37 @@ export function ForumPage() {
       ) : (
         <motion.div variants={container} initial="hidden" animate="show" className="space-y-3">
           {questions.map((q: ForumQuestion) => (
-            <motion.div key={q.id} variants={item} whileHover={{ y: -2 }} className="rounded-xl border bg-card p-5 transition-all duration-200 hover:shadow-md hover:border-primary/20">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Link to={ROUTES.QUESTION_DETAIL(q.id)} className="text-lg font-semibold hover:text-primary transition-colors truncate">
-                      {q.title}
-                    </Link>
-                    <Badge className={cn('shrink-0', q.isSolved ? 'bg-success/10 text-success border-success/30' : 'bg-info/10 text-info border-info/30')} variant="outline">
-                      {q.isSolved ? <><CheckCircle2 className="h-3 w-3 mr-1" /> Решён</> : <><CircleDot className="h-3 w-3 mr-1" /> Открыт</>}
-                    </Badge>
+            <motion.div key={q.id} variants={item} whileHover={{ y: -2 }}>
+              <Link to={ROUTES.QUESTION_DETAIL(q.id)} className="block rounded-xl border bg-card p-5 transition-all duration-200 hover:shadow-md hover:border-primary/20">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg font-semibold truncate">{q.title}</span>
+                      <Badge className={cn('shrink-0', q.isSolved ? 'bg-success/10 text-success border-success/30' : 'bg-info/10 text-info border-info/30')} variant="outline">
+                        {q.isSolved ? <><CheckCircle2 className="h-3 w-3 mr-1" /> Решён</> : <><CircleDot className="h-3 w-3 mr-1" /> Открыт</>}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {(q.tags ?? []).map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {(q.tags ?? []).map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
-                    ))}
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground shrink-0">
+                    <span className="flex items-center gap-1"><MessageSquare className="h-4 w-4" />{q.answerCount}</span>
+                    <span className="flex items-center gap-1"><Eye className="h-4 w-4" />{q.viewCount}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground shrink-0">
-                  <span className="flex items-center gap-1"><MessageSquare className="h-4 w-4" />{q.answerCount}</span>
-                  <span className="flex items-center gap-1"><Eye className="h-4 w-4" />{q.viewCount}</span>
+                <div className="flex items-center gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
+                  <Link to={ROUTES.PROFILE(q.authorId)} className="flex items-center gap-2 group/author w-fit">
+                    <Avatar className="h-6 w-6">
+                      {q.authorAvatarUrl && <AvatarImage src={q.authorAvatarUrl} />}
+                      <AvatarFallback className="text-xs">{q.authorName?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm text-muted-foreground group-hover/author:text-primary transition-colors">{q.authorName}</span>
+                  </Link>
+                  <span className="text-xs text-muted-foreground">{formatRelative(q.createdAt)}</span>
                 </div>
-              </div>
-              <Link to={ROUTES.PROFILE(q.authorId)} onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 mt-3 group/author w-fit">
-                <Avatar className="h-6 w-6">
-                  {q.authorAvatarUrl && <AvatarImage src={q.authorAvatarUrl} />}
-                  <AvatarFallback className="text-xs">{q.authorName?.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <span className="text-sm text-muted-foreground group-hover/author:text-primary transition-colors">{q.authorName}</span>
-                <span className="text-xs text-muted-foreground">{formatRelative(q.createdAt)}</span>
               </Link>
             </motion.div>
           ))}

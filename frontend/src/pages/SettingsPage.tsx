@@ -274,8 +274,8 @@ export function SettingsPage() {
                       toast({ title: 'Аккаунт удалён', description: 'Все данные будут удалены', variant: 'success' })
                       setDeleteDialogOpen(false)
                       navigate(ROUTES.LOGIN)
-                    } catch {
-                      toast({ title: 'Ошибка', description: 'Не удалось удалить аккаунт', variant: 'error' })
+                    } catch (err) {
+                      toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось удалить аккаунт', variant: 'error' })
                     } finally {
                       setIsDeleting(false)
                     }

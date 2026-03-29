@@ -35,6 +35,7 @@ import '../modules/materials/comments.model.js';
 import '../modules/reviews/reviews.model.js';
 import '../modules/forum/forum.model.js';
 import '../modules/groups/groups.model.js';
+import '../modules/groups/chat.model.js';
 import '../modules/deadlines/deadlines.model.js';
 import '../modules/marketplace/marketplace.model.js';
 import '../modules/events/events.model.js';

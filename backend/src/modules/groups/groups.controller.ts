@@ -3,6 +3,7 @@ import { success, error, paginated } from '../../utils/api-response.js';
 import { formatFullName } from '../../utils/format.js';
 import * as groupsService from './groups.service.js';
 import { UserModel } from '../users/users.model.js';
+import { ChatMessageModel } from './chat.model.js';
 
 // ---------- GET /groups ----------
 
@@ -191,4 +192,34 @@ export async function teamSuggestions(
   );
 
   return reply.send(success(suggestions));
+}
+
+// ---------- GET /groups/:id/messages ----------
+
+export async function getChatMessages(
+  request: FastifyRequest<{ Params: { id: string }; Querystring: { limit?: string; before?: string } }>,
+  reply: FastifyReply
+) {
+  const limit = Math.min(Number(request.query.limit) || 50, 100);
+  const filter: Record<string, unknown> = { groupId: request.params.id };
+  if (request.query.before) {
+    filter.createdAt = { $lt: new Date(request.query.before) };
+  }
+
+  const messages = await ChatMessageModel.find(filter)
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .lean();
+
+  // Reverse to chronological order and add isMine flag
+  const items = messages.reverse().map((m) => ({
+    id: m._id.toString(),
+    userId: m.userId.toString(),
+    userName: m.userName,
+    text: m.text,
+    timestamp: m.createdAt.toISOString(),
+    isMine: m.userId.toString() === request.user.id,
+  }));
+
+  return reply.send(success(items));
 }

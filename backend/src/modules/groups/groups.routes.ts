@@ -11,6 +11,7 @@ import {
   teamSuggestions,
   updateGroupHandler,
   deleteGroupHandler,
+  getChatMessages,
 } from './groups.controller.js';
 
 const createGroupSchema = z.object({
@@ -89,5 +90,12 @@ export const groupsRoutes: FastifyPluginAsync = async (app) => {
     '/:id/leave',
     { preHandler: [authenticate, validate({ params: idParamSchema })] },
     leaveGroup as RouteHandlerMethod
+  );
+
+  // GET /:id/messages — chat history (authenticated)
+  app.get(
+    '/:id/messages',
+    { preHandler: [authenticate, validate({ params: idParamSchema })] },
+    getChatMessages as RouteHandlerMethod
   );
 };
