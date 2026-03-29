@@ -55,15 +55,10 @@ export const marketplaceRoutes: FastifyPluginAsync = async (app) => {
     listListings as RouteHandlerMethod
   );
 
-  // POST /marketplace -- create listing (authenticated)
+  // POST /marketplace -- create listing (authenticated, supports multipart for photos)
   app.post(
     '/',
-    {
-      preHandler: [
-        authenticate,
-        validate({ body: createListingSchema }),
-      ],
-    },
+    { preHandler: [authenticate] },
     createListingHandler as RouteHandlerMethod
   );
 

@@ -12,6 +12,10 @@ import { createNotification } from '../notifications/notifications.service.js';
 import { success, error, paginated } from '../../utils/api-response.js';
 import { formatFullName } from '../../utils/format.js';
 import { UserModel } from '../users/users.model.js';
+import { validateFileType } from '../../utils/file-validation.js';
+import { saveUploadedFiles, type BufferedFile } from '../../utils/file-upload.js';
+
+const LISTING_ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 interface ListingsQuerystring {
   type?: string;
@@ -52,15 +56,53 @@ export async function listListings(
 }
 
 export async function createListingHandler(
-  request: FastifyRequest<{ Body: CreateListingBody }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) {
   const user = request.user;
+  let body: CreateListingBody;
+
+  // Handle both JSON and multipart (when photos are attached)
+  const contentType = request.headers['content-type'] ?? '';
+  if (contentType.includes('multipart')) {
+    const fields: Record<string, string> = {};
+    const files: BufferedFile[] = [];
+
+    const parts = request.parts();
+    for await (const part of parts) {
+      if (part.type === 'file') {
+        const buffer = await part.toBuffer();
+        const { valid } = validateFileType(buffer, part.mimetype, LISTING_ALLOWED_MIMES);
+        if (valid) files.push({ ...part, _buffer: buffer } as BufferedFile);
+      } else {
+        fields[part.fieldname] = (part as { value: string }).value;
+      }
+    }
+
+    const saved = await saveUploadedFiles(files, 'marketplace');
+
+    body = {
+      title: fields.title ?? '',
+      type: fields.type ?? 'sell',
+      price: fields.price ? Number(fields.price) : undefined,
+      condition: fields.condition,
+      description: fields.description,
+      location: fields.location,
+      course: fields.courseTitle ? { title: fields.courseTitle } : undefined,
+      photos: saved.map((f) => f.url),
+    };
+  } else {
+    body = request.body as CreateListingBody;
+  }
+
+  if (!body.title || body.title.length < 1) {
+    return reply.code(422).send(error('VALIDATION_ERROR', 'Укажите название объявления'));
+  }
 
   const dbUser = await UserModel.findById(user.id).select('name').lean();
   const sellerName = dbUser ? formatFullName(dbUser.name) : user.email;
 
-  const listing = await createListing(request.body, {
+  const listing = await createListing(body, {
     id: user.id,
     name: sellerName,
   });
