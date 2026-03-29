@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Loader2,
+  ThumbsUp,
 } from 'lucide-react'
 import { PageTransition } from '@/components/shared/PageTransition'
 import { deadlinesService, type CreateDeadlineData } from '@/services/deadlines.service'
@@ -53,6 +54,7 @@ export function DeadlinesPage() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [type, setType] = useState('')
@@ -85,6 +87,20 @@ export function DeadlinesPage() {
     },
     onError: (err) => {
       toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось создать дедлайн', variant: 'error' })
+    },
+  })
+
+  const confirmMutation = useMutation({
+    mutationFn: (deadlineId: string) => deadlinesService.confirmDeadline(deadlineId),
+    onMutate: (id) => { setConfirmingId(id) },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deadlines'] })
+      toast({ title: 'Дедлайн подтверждён', variant: 'success' })
+      setConfirmingId(null)
+    },
+    onError: (err) => {
+      toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось подтвердить', variant: 'error' })
+      setConfirmingId(null)
     },
   })
 
@@ -228,7 +244,7 @@ export function DeadlinesPage() {
                           {deadline.description}
                         </p>
                       )}
-                      <div className="flex flex-wrap gap-1.5 mt-1">
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1">
                         {deadline.courseName && (
                           <span className="inline-block rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
                             {deadline.courseName}
@@ -239,10 +255,15 @@ export function DeadlinesPage() {
                             {deadline.type}
                           </Badge>
                         )}
+                        {deadline.authorName && (
+                          <span className="text-xs text-muted-foreground">
+                            · {deadline.authorName}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
+                  <div className="flex flex-col items-end gap-1.5">
                     <span
                       className={cn(
                         'rounded-full px-2 py-0.5 text-xs font-medium',
@@ -257,6 +278,22 @@ export function DeadlinesPage() {
                     <span className="text-xs text-muted-foreground">
                       {formatDateTime(deadline.dueDate)}
                     </span>
+                    {!isPast && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs h-7"
+                        onClick={() => confirmMutation.mutate(deadline.id)}
+                        disabled={confirmingId === deadline.id}
+                      >
+                        {confirmingId === deadline.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <ThumbsUp className="h-3 w-3" />
+                        )}
+                        Подтвердить ({deadline.confirmations ?? 0})
+                      </Button>
+                    )}
                   </div>
                 </div>
               </motion.div>
