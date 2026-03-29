@@ -13,6 +13,7 @@ import {
 import { PageTransition } from '@/components/shared/PageTransition'
 import { deadlinesService, type CreateDeadlineData } from '@/services/deadlines.service'
 import { coursesService } from '@/services/courses.service'
+import { useAuthStore } from '@/store/auth.store'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -53,6 +54,7 @@ function getDeadlineUrgency(dueDate: string) {
 export function DeadlinesPage() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const userId = useAuthStore((s) => s.user?.id)
   const [open, setOpen] = useState(false)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [title, setTitle] = useState('')
@@ -278,22 +280,27 @@ export function DeadlinesPage() {
                     <span className="text-xs text-muted-foreground">
                       {formatDateTime(deadline.dueDate)}
                     </span>
-                    {!isPast && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1.5 text-xs h-7"
-                        onClick={() => confirmMutation.mutate(deadline.id)}
-                        disabled={confirmingId === deadline.id}
-                      >
-                        {confirmingId === deadline.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <ThumbsUp className="h-3 w-3" />
-                        )}
-                        Подтвердить ({deadline.confirmations ?? 0})
-                      </Button>
-                    )}
+                    {!isPast && (() => {
+                      const isConfirmed = userId ? (deadline.confirmedBy ?? []).includes(userId) : false
+                      return (
+                        <Button
+                          size="sm"
+                          variant={isConfirmed ? 'default' : 'outline'}
+                          className={cn('gap-1.5 text-xs h-7', isConfirmed && 'bg-success hover:bg-success/90 text-success-foreground')}
+                          onClick={() => !isConfirmed && confirmMutation.mutate(deadline.id)}
+                          disabled={confirmingId === deadline.id || isConfirmed}
+                        >
+                          {confirmingId === deadline.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : isConfirmed ? (
+                            <CheckCircle2 className="h-3 w-3" />
+                          ) : (
+                            <ThumbsUp className="h-3 w-3" />
+                          )}
+                          {isConfirmed ? 'Подтверждено' : 'Подтвердить'} ({deadline.confirmations ?? 0})
+                        </Button>
+                      )
+                    })()}
                   </div>
                 </div>
               </motion.div>

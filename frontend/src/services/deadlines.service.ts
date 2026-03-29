@@ -14,6 +14,7 @@ export interface Deadline {
   authorName: string
   dueDate: string
   confirmations: number
+  confirmedBy?: string[]
   createdAt: string
   updatedAt: string
 }
@@ -53,6 +54,7 @@ function mapDeadline(raw: any): Deadline {
     authorName: raw.createdBy?.name ?? raw.authorName ?? '',
     dueDate: raw.dueDate,
     confirmations: raw.confirmations ?? 0,
+    confirmedBy: (raw.confirmedBy ?? []).map(String),
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
   }
