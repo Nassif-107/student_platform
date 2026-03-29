@@ -1,10 +1,10 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useState, useRef, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Loader2, X, Tag } from 'lucide-react'
+import { ArrowLeft, Loader2, X, Tag, Paperclip, File, Image } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -35,6 +35,8 @@ export function AskQuestionPage() {
   const queryClient = useQueryClient()
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
+  const [files, setFiles] = useState<File[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: coursesData } = useQuery({
     queryKey: ['courses', 'all'],
@@ -55,7 +57,7 @@ export function AskQuestionPage() {
         body: data.body,
         courseId: data.courseId,
         tags,
-      }),
+      }, files),
     onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ['forum-questions'] })
       toast({ title: 'Вопрос опубликован', description: 'Ваш вопрос успешно создан', variant: 'success' })
@@ -160,6 +162,32 @@ export function AskQuestionPage() {
                     className="flex-1 border-0 p-0 shadow-none focus-visible:ring-0 min-w-[120px]"
                   />
                 </div>
+              </div>
+
+              {/* Attachments */}
+              <div className="space-y-2">
+                <Label>Вложения <span className="text-muted-foreground">(необязательно — изображения, PDF)</span></Label>
+                <input ref={fileInputRef} type="file" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf" onChange={(e) => {
+                  const selected = Array.from(e.target.files ?? [])
+                  setFiles((prev) => [...prev, ...selected].slice(0, 5))
+                  if (fileInputRef.current) fileInputRef.current.value = ''
+                }} className="hidden" />
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="flex w-full items-center gap-2 rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5">
+                  <Paperclip className="h-4 w-4" />
+                  Прикрепить файлы (макс. 5)
+                </button>
+                {files.length > 0 && (
+                  <div className="space-y-1.5">
+                    {files.map((f, i) => (
+                      <div key={`${f.name}-${i}`} className="flex items-center gap-2 rounded-lg border p-2 text-sm">
+                        {f.type.startsWith('image/') ? <Image className="h-4 w-4 text-primary shrink-0" /> : <File className="h-4 w-4 text-primary shrink-0" />}
+                        <span className="flex-1 truncate">{f.name}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">{(f.size / 1024).toFixed(0)} КБ</span>
+                        <button type="button" onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))} className="p-0.5 hover:text-destructive"><X className="h-3.5 w-3.5" /></button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end pt-2">

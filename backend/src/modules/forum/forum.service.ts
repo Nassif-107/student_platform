@@ -109,7 +109,7 @@ export async function getQuestionById(id: string, answersPage = 1, answersLimit 
 // ---------- Create Question ----------
 
 export async function createQuestion(
-  data: { title: string; body: string; courseId?: string; courseTitle?: string; tags?: string[] },
+  data: { title: string; body: string; courseId?: string; courseTitle?: string; tags?: string[]; attachments?: unknown[] },
   user: AuthorInfo
 ) {
   const question = await QuestionModel.create({
@@ -118,6 +118,7 @@ export async function createQuestion(
     course: data.courseId ? { id: data.courseId, title: data.courseTitle } : undefined,
     author: { id: user.id, name: user.name, avatar: user.avatar },
     tags: data.tags ?? [],
+    attachments: data.attachments ?? [],
   });
 
   await UserModel.updateOne(
@@ -142,7 +143,7 @@ export async function createQuestion(
 
 // ---------- Create Answer ----------
 
-export async function createAnswer(questionId: string, body: string, user: AuthorInfo) {
+export async function createAnswer(questionId: string, body: string, user: AuthorInfo, attachments: unknown[] = []) {
   const question = await QuestionModel.findById(questionId).lean();
   if (!question) return null;
 
@@ -150,6 +151,7 @@ export async function createAnswer(questionId: string, body: string, user: Autho
     questionId,
     author: { id: user.id, name: user.name, avatar: user.avatar },
     body,
+    attachments,
   });
 
   await QuestionModel.updateOne({ _id: questionId }, { $inc: { answerCount: 1 } });

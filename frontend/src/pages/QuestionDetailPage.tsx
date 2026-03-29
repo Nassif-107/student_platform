@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { motion } from 'framer-motion'
 import {
   ArrowLeft, Eye, ChevronUp, ChevronDown, CheckCircle2, CircleDot,
-  MessageSquare, Loader2, Check,
+  MessageSquare, Loader2, Check, Paperclip, FileText, Image, X, Download,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -45,6 +45,8 @@ export function QuestionDetailPage() {
   const [answerSort, setAnswerSort] = useState<AnswerSort>('votes')
   const [votingAnswerId, setVotingAnswerId] = useState<string | null>(null)
   const [acceptingAnswerId, setAcceptingAnswerId] = useState<string | null>(null)
+  const [answerFiles, setAnswerFiles] = useState<File[]>([])
+  const answerFileRef = useRef<HTMLInputElement>(null)
 
   const { data: detail, isLoading: detailLoading } = useQuery({
     queryKey: ['forum-question', id],
@@ -65,10 +67,11 @@ export function QuestionDetailPage() {
   })
 
   const answerMutation = useMutation({
-    mutationFn: (data: AnswerForm) => forumService.createAnswer(id!, data),
+    mutationFn: (data: AnswerForm) => forumService.createAnswer(id!, data, answerFiles),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['forum-question', id] })
       reset()
+      setAnswerFiles([])
       toast({ title: 'Ответ опубликован', variant: 'success' })
     },
     onError: (err) => toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось опубликовать ответ', variant: 'error' }),
@@ -250,8 +253,27 @@ export function QuestionDetailPage() {
               <ChevronDown className="h-5 w-5" />
             </button>
           </div>
-          <div className="flex-1 rounded-xl border bg-card p-5 whitespace-pre-wrap text-sm leading-relaxed">
-            {question.body}
+          <div className="flex-1 space-y-3">
+            <div className="rounded-xl border bg-card p-5 whitespace-pre-wrap text-sm leading-relaxed">
+              {question.body}
+            </div>
+            {question.attachments?.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {question.attachments.map((att) =>
+                  att.mimeType?.startsWith('image/') ? (
+                    <a key={att.url} href={att.url} target="_blank" rel="noopener noreferrer" className="block max-w-xs">
+                      <img src={att.url} alt={att.originalName} loading="lazy" decoding="async" className="rounded-lg border max-h-48 object-cover" />
+                    </a>
+                  ) : (
+                    <a key={att.url} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-accent transition-colors">
+                      <FileText className="h-4 w-4 text-primary" />
+                      <span className="truncate max-w-[200px]">{att.originalName}</span>
+                      <Download className="h-3.5 w-3.5 text-muted-foreground" />
+                    </a>
+                  )
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -294,6 +316,22 @@ export function QuestionDetailPage() {
               </div>
               <div className="flex-1 space-y-3">
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">{a.body}</p>
+                {a.attachments?.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {a.attachments.map((att) =>
+                      att.mimeType?.startsWith('image/') ? (
+                        <a key={att.url} href={att.url} target="_blank" rel="noopener noreferrer" className="block max-w-[200px]">
+                          <img src={att.url} alt={att.originalName} loading="lazy" decoding="async" className="rounded-lg border max-h-32 object-cover" />
+                        </a>
+                      ) : (
+                        <a key={att.url} href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs hover:bg-accent transition-colors">
+                          <FileText className="h-3.5 w-3.5 text-primary" />
+                          <span className="truncate max-w-[150px]">{att.originalName}</span>
+                        </a>
+                      )
+                    )}
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <Link to={ROUTES.PROFILE(a.authorId)} className="flex items-center gap-2 group">
                     <Avatar className="h-6 w-6">
@@ -325,6 +363,26 @@ export function QuestionDetailPage() {
           <form onSubmit={handleSubmit((data) => answerMutation.mutate(data))} className="space-y-3">
             <Textarea placeholder="Ваш ответ..." className="min-h-[120px]" {...register('body')} />
             {errors.body && <p className="text-xs text-destructive">{errors.body.message}</p>}
+
+            {/* File attachments for answer */}
+            <input ref={answerFileRef} type="file" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf" onChange={(e) => {
+              const selected = Array.from(e.target.files ?? [])
+              setAnswerFiles((prev) => [...prev, ...selected].slice(0, 5))
+              if (answerFileRef.current) answerFileRef.current.value = ''
+            }} className="hidden" />
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => answerFileRef.current?.click()} className="flex items-center gap-1.5 rounded-lg border border-dashed px-3 py-1.5 text-xs text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors">
+                <Paperclip className="h-3.5 w-3.5" /> Прикрепить файл
+              </button>
+              {answerFiles.map((f, i) => (
+                <div key={`${f.name}-${i}`} className="flex items-center gap-1 rounded-lg border px-2 py-1 text-xs">
+                  {f.type.startsWith('image/') ? <Image className="h-3 w-3 text-primary" /> : <FileText className="h-3 w-3 text-primary" />}
+                  <span className="truncate max-w-[100px]">{f.name}</span>
+                  <button type="button" onClick={() => setAnswerFiles((prev) => prev.filter((_, j) => j !== i))} className="hover:text-destructive"><X className="h-3 w-3" /></button>
+                </div>
+              ))}
+            </div>
+
             <div className="flex justify-end">
               <Button type="submit" disabled={answerMutation.isPending}>
                 {answerMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}

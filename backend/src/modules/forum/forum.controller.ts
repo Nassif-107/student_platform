@@ -1,8 +1,35 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { success, error, paginated } from '../../utils/api-response.js';
 import { formatFullName } from '../../utils/format.js';
+import { validateFileType } from '../../utils/file-validation.js';
+import { saveUploadedFiles, type BufferedFile } from '../../utils/file-upload.js';
 import * as forumService from './forum.service.js';
 import { UserModel } from '../users/users.model.js';
+
+const FORUM_ALLOWED_MIMES = [
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf',
+];
+
+/** Parse multipart fields and files from a request */
+async function parseMultipart(request: FastifyRequest) {
+  const fields: Record<string, string> = {};
+  const files: BufferedFile[] = [];
+
+  const parts = request.parts();
+  for await (const part of parts) {
+    if (part.type === 'file') {
+      const buffer = await part.toBuffer();
+      const { valid } = validateFileType(buffer, part.mimetype, FORUM_ALLOWED_MIMES);
+      if (valid) {
+        files.push({ ...part, _buffer: buffer } as BufferedFile);
+      }
+    } else {
+      fields[part.fieldname] = (part as { value: string }).value;
+    }
+  }
+
+  return { fields, files };
+}
 
 // ---------- GET /questions ----------
 
@@ -76,26 +103,31 @@ export async function getQuestion(
 // ---------- POST /questions ----------
 
 export async function createQuestion(
-  request: FastifyRequest<{
-    Body: {
-      title: string;
-      body: string;
-      courseId?: string;
-      courseTitle?: string;
-      tags?: string[];
-    };
-  }>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) {
+  const { fields, files } = await parseMultipart(request);
+
+  const title = fields.title?.trim();
+  const body = fields.body?.trim();
+  if (!title || title.length < 5) {
+    return reply.code(422).send(error('VALIDATION_ERROR', 'Заголовок должен содержать минимум 5 символов'));
+  }
+  if (!body || body.length < 10) {
+    return reply.code(422).send(error('VALIDATION_ERROR', 'Описание должно содержать минимум 10 символов'));
+  }
+
+  const tags = fields.tags ? JSON.parse(fields.tags) : [];
+  const attachments = await saveUploadedFiles(files, 'forum');
+
   const user = request.user;
   const dbUser = await UserModel.findById(user.id).lean();
   const authorName = dbUser ? formatFullName(dbUser.name) : 'Unknown';
 
-  const question = await forumService.createQuestion(request.body, {
-    id: user.id,
-    name: authorName,
-    avatar: dbUser?.avatar,
-  });
+  const question = await forumService.createQuestion(
+    { title, body, courseId: fields.courseId, courseTitle: fields.courseTitle, tags, attachments },
+    { id: user.id, name: authorName, avatar: dbUser?.avatar },
+  );
 
   return reply.code(201).send(success(question));
 }
@@ -103,21 +135,28 @@ export async function createQuestion(
 // ---------- POST /questions/:id/answers ----------
 
 export async function createAnswer(
-  request: FastifyRequest<{
-    Params: { id: string };
-    Body: { body: string };
-  }>,
+  request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
+  const { fields, files } = await parseMultipart(request);
+
+  const body = fields.body?.trim();
+  if (!body || body.length < 5) {
+    return reply.code(422).send(error('VALIDATION_ERROR', 'Ответ должен содержать минимум 5 символов'));
+  }
+
+  const attachments = await saveUploadedFiles(files, 'forum');
+
   const user = request.user;
   const dbUser = await UserModel.findById(user.id).lean();
   const authorName = dbUser ? formatFullName(dbUser.name) : 'Unknown';
 
-  const answer = await forumService.createAnswer(request.params.id, request.body.body, {
-    id: user.id,
-    name: authorName,
-    avatar: dbUser?.avatar,
-  });
+  const answer = await forumService.createAnswer(
+    request.params.id,
+    body,
+    { id: user.id, name: authorName, avatar: dbUser?.avatar },
+    attachments,
+  );
 
   if (!answer) {
     return reply.code(404).send(error('NOT_FOUND', 'Вопрос не найден'));

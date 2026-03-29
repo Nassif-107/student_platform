@@ -25,6 +25,10 @@ export default defineConfig({
         changeOrigin: true,
         ws: true,
       },
+      '/uploads': {
+        target: API_TARGET,
+        changeOrigin: true,
+      },
     },
   },
   build: {

@@ -1,5 +1,13 @@
 import mongoose, { Schema, type Document, type Types } from 'mongoose';
 
+export interface Attachment {
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  url: string;
+}
+
 export interface QuestionDocument extends Document {
   _id: Types.ObjectId;
   title: string;
@@ -14,6 +22,7 @@ export interface QuestionDocument extends Document {
     avatar?: string;
   };
   tags: string[];
+  attachments: Attachment[];
   views: number;
   votes: number;
   answerCount: number;
@@ -37,6 +46,7 @@ export interface AnswerDocument extends Document {
     avatar?: string;
   };
   body: string;
+  attachments: Attachment[];
   votes: number;
   votedBy: VoteEntry[];
   isAccepted: boolean;
@@ -58,6 +68,13 @@ const questionSchema = new Schema<QuestionDocument>(
       avatar: String,
     },
     tags: [String],
+    attachments: [{
+      filename: String,
+      originalName: String,
+      mimeType: String,
+      size: Number,
+      url: String,
+    }],
     views: { type: Number, default: 0 },
     votes: { type: Number, default: 0 },
     answerCount: { type: Number, default: 0 },
@@ -85,6 +102,13 @@ const answerSchema = new Schema<AnswerDocument>(
       avatar: String,
     },
     body: { type: String, required: true, maxlength: 5000 },
+    attachments: [{
+      filename: String,
+      originalName: String,
+      mimeType: String,
+      size: Number,
+      url: String,
+    }],
     votes: { type: Number, default: 0 },
     votedBy: [
       {

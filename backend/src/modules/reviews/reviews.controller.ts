@@ -9,7 +9,11 @@ export async function getReviews(
   request: FastifyRequest<{ Querystring: ReviewQueryInput }>,
   reply: FastifyReply
 ): Promise<void> {
-  const result = await reviewsService.getReviews(request.query);
+  // Try to extract current user for isLiked (optional — endpoint is public)
+  let currentUserId: string | undefined;
+  try { await request.jwtVerify(); currentUserId = request.user?.id; } catch { /* not authenticated */ }
+
+  const result = await reviewsService.getReviews(request.query, currentUserId);
   reply.send(paginated(result.reviews, result.total, result.page, result.limit));
 }
 

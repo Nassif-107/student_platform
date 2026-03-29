@@ -51,17 +51,34 @@ export async function getProfessorReviews(
   const limit = Math.min(request.query.limit ?? 20, 50);
   const skip = (page - 1) * limit;
 
-  const [items, total] = await Promise.all([
+  // Try to get current user for isLiked (optional)
+  let currentUserId: string | undefined;
+  try { await request.jwtVerify(); currentUserId = request.user?.id; } catch { /* not authenticated */ }
+
+  const [docs, total] = await Promise.all([
     ReviewModel.find({ 'target.type': 'professor', 'target.id': request.params.id })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
+      .select(currentUserId ? '' : '-likedBy')
       .lean(),
     ReviewModel.countDocuments({
       'target.type': 'professor',
       'target.id': request.params.id,
     }),
   ]);
+
+  // Compute isLiked per review, strip likedBy array
+  const items = docs.map((doc) => {
+    const review = { ...doc } as Record<string, unknown>;
+    if (currentUserId && doc.likedBy) {
+      review.isLiked = (doc.likedBy as import('mongoose').Types.ObjectId[]).some(
+        (uid) => uid.toString() === currentUserId,
+      );
+    }
+    delete review.likedBy;
+    return review;
+  });
 
   return reply.send(paginated(items, total, page, limit));
 }

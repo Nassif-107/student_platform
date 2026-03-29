@@ -4,6 +4,8 @@ import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
+import fastifyStatic from '@fastify/static';
+import { resolve } from 'node:path';
 import { env } from './config/env.js';
 import { dbPluginRegistered as dbPlugin } from './plugins/db.plugin.js';
 import { authPluginRegistered as authPlugin } from './plugins/auth.plugin.js';
@@ -65,6 +67,13 @@ export async function buildApp(): Promise<FastifyInstance> {
       fileSize: env.MAX_FILE_SIZE,
       files: 5,
     },
+  });
+
+  // --- Static file serving (uploaded materials, forum attachments, avatars) ---
+  await app.register(fastifyStatic, {
+    root: resolve(env.UPLOAD_DIR),
+    prefix: '/uploads/',
+    decorateReply: false,
   });
 
   // --- Rate limiting (Redis-backed, per-route granularity) ---

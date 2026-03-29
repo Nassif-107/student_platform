@@ -131,14 +131,30 @@ export async function getCourseReviews(
 ) {
   const { page, limit, skip } = parsePagination(request.query as Record<string, unknown>);
 
-  const [items, total] = await Promise.all([
+  // Try to get current user for isLiked (optional)
+  let currentUserId: string | undefined;
+  try { await request.jwtVerify(); currentUserId = request.user?.id; } catch { /* not authenticated */ }
+
+  const [docs, total] = await Promise.all([
     ReviewModel.find({ 'target.type': 'course', 'target.id': request.params.id })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
+      .select(currentUserId ? '' : '-likedBy')
       .lean(),
     ReviewModel.countDocuments({ 'target.type': 'course', 'target.id': request.params.id }),
   ]);
+
+  const items = docs.map((doc) => {
+    const review = { ...doc } as Record<string, unknown>;
+    if (currentUserId && doc.likedBy) {
+      review.isLiked = (doc.likedBy as import('mongoose').Types.ObjectId[]).some(
+        (uid) => uid.toString() === currentUserId,
+      );
+    }
+    delete review.likedBy;
+    return review;
+  });
 
   return reply.send(paginated(items, total, page, limit));
 }

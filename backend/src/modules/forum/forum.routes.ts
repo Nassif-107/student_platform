@@ -56,10 +56,10 @@ export const forumRoutes: FastifyPluginAsync = async (app) => {
     getQuestion as RouteHandlerMethod
   );
 
-  // POST /questions — create question (authenticated)
+  // POST /questions — create question (authenticated, multipart with optional file attachments)
   app.post(
     '/questions',
-    { preHandler: [authenticate, validate({ body: createQuestionSchema })] },
+    { preHandler: [authenticate] },
     createQuestion as RouteHandlerMethod
   );
 
@@ -94,15 +94,10 @@ export const forumRoutes: FastifyPluginAsync = async (app) => {
     voteQuestion as RouteHandlerMethod
   );
 
-  // POST /questions/:id/answers — post answer (authenticated)
+  // POST /questions/:id/answers — post answer (authenticated, multipart with optional file attachments)
   app.post(
     '/questions/:id/answers',
-    {
-      preHandler: [
-        authenticate,
-        validate({ params: idParamSchema, body: createAnswerSchema }),
-      ],
-    },
+    { preHandler: [authenticate, validate({ params: idParamSchema })] },
     createAnswer as RouteHandlerMethod
   );
 

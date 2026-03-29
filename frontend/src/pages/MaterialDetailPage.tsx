@@ -65,13 +65,18 @@ export function MaterialDetailPage() {
 
   const downloadMutation = useMutation({
     mutationFn: async () => {
+      // Try API download endpoint first (tracks download count)
       const res = await materialsService.downloadMaterial(id!)
-      const url = (res as any)?.url || material?.fileUrl
+      const resAny = res as any
+      // Response shape: { files: [{ url, ... }] } or { url } or direct file URL
+      const url = resAny?.files?.[0]?.url ?? resAny?.url ?? material?.fileUrl ?? material?.files?.[0]?.url
       if (url) window.open(url, '_blank')
-      else throw new Error('no url')
+      else throw new Error('Файл не найден')
     },
     onError: (err) => {
-      if (material?.fileUrl) window.open(material.fileUrl, '_blank')
+      // Fallback: open the stored file URL directly
+      const fallbackUrl = material?.fileUrl ?? (material?.files as any)?.[0]?.url
+      if (fallbackUrl) window.open(fallbackUrl, '_blank')
       else toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось скачать файл', variant: 'error' })
     },
   })

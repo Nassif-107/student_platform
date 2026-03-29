@@ -33,7 +33,7 @@ function sanitizeAnonymous(review: Record<string, unknown>): Record<string, unkn
   return review;
 }
 
-export async function getReviews(query: ReviewQueryInput): Promise<ReviewsResult> {
+export async function getReviews(query: ReviewQueryInput, currentUserId?: string): Promise<ReviewsResult> {
   const { targetType, targetId, authorId, sort, page, limit } = query;
   const skip = (page - 1) * limit;
 
@@ -52,17 +52,32 @@ export async function getReviews(query: ReviewQueryInput): Promise<ReviewsResult
 
   const sortOrder = SORT_MAP[sort] ?? SORT_MAP.newest;
 
+  // Include likedBy only if we need to compute isLiked for the current user
+  const selectFields = currentUserId ? '' : '-likedBy';
+
   const [docs, total] = await Promise.all([
     ReviewModel.find(filter)
       .sort(sortOrder)
       .skip(skip)
       .limit(limit)
-      .select('-likedBy')
+      .select(selectFields)
       .lean(),
     ReviewModel.countDocuments(filter),
   ]);
 
-  const reviews = docs.map((doc) => sanitizeAnonymous(doc as unknown as Record<string, unknown>));
+  const reviews = docs.map((doc) => {
+    const review = sanitizeAnonymous(doc as unknown as Record<string, unknown>);
+
+    // Compute isLiked for current user, then strip likedBy array
+    if (currentUserId && doc.likedBy) {
+      review.isLiked = (doc.likedBy as Types.ObjectId[]).some(
+        (uid) => uid.toString() === currentUserId,
+      );
+    }
+    delete review.likedBy;
+
+    return review;
+  });
 
   return { reviews, total, page, limit };
 }

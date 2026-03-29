@@ -2,6 +2,14 @@ import { api } from './api'
 import { buildQueryString } from '@/lib/query'
 import { mapPaginatedResponse, type PaginatedResponse } from '@/lib/pagination'
 
+export interface ForumAttachment {
+  filename: string
+  originalName: string
+  mimeType: string
+  size: number
+  url: string
+}
+
 export interface ForumQuestion {
   id: string
   title: string
@@ -12,6 +20,7 @@ export interface ForumQuestion {
   courseId?: string
   courseName?: string
   tags: string[]
+  attachments: ForumAttachment[]
   answerCount: number
   viewCount: number
   voteCount: number
@@ -29,6 +38,7 @@ export interface ForumAnswer {
   authorId: string
   authorName: string
   authorAvatarUrl?: string
+  attachments: ForumAttachment[]
   voteCount: number
   isAccepted: boolean
   isVoted?: 'up' | 'down' | null
@@ -81,6 +91,7 @@ function mapQuestion(raw: any): ForumQuestion {
     courseId: raw.course?.id ?? raw.courseId,
     courseName: raw.course?.title ?? raw.courseName,
     tags: raw.tags ?? [],
+    attachments: raw.attachments ?? [],
     answerCount: raw.answerCount ?? 0,
     viewCount: raw.views ?? raw.viewCount ?? 0,
     voteCount: raw.voteCount ?? raw.votes ?? 0,
@@ -101,6 +112,7 @@ function mapAnswer(raw: any): ForumAnswer {
     authorId: raw.author?.id ?? raw.authorId ?? '',
     authorName: raw.author?.name ?? raw.authorName ?? '',
     authorAvatarUrl: raw.author?.avatar ?? raw.authorAvatarUrl,
+    attachments: raw.attachments ?? [],
     voteCount: raw.votes ?? raw.voteCount ?? 0,
     isAccepted: raw.isAccepted ?? false,
     isVoted: raw.isVoted ?? null,
@@ -142,8 +154,14 @@ export const forumService = {
     } as QuestionDetailResponse
   },
 
-  createQuestion: async (data: CreateQuestionData) => {
-    const raw = await api.post<any>('/forum/questions', data)
+  createQuestion: async (data: CreateQuestionData, files?: File[]) => {
+    const formData = new FormData()
+    formData.append('title', data.title)
+    formData.append('body', data.body)
+    if (data.courseId) formData.append('courseId', data.courseId)
+    if (data.tags.length > 0) formData.append('tags', JSON.stringify(data.tags))
+    files?.forEach((f) => formData.append('files', f))
+    const raw = await api.post<any>('/forum/questions', formData)
     return mapQuestion(raw)
   },
 
@@ -160,8 +178,11 @@ export const forumService = {
       value: direction === 'up' ? 1 : -1,
     }),
 
-  createAnswer: async (questionId: string, data: CreateAnswerData) => {
-    const raw = await api.post<any>(`/forum/questions/${questionId}/answers`, data)
+  createAnswer: async (questionId: string, data: CreateAnswerData, files?: File[]) => {
+    const formData = new FormData()
+    formData.append('body', data.body)
+    files?.forEach((f) => formData.append('files', f))
+    const raw = await api.post<any>(`/forum/questions/${questionId}/answers`, formData)
     return mapAnswer(raw)
   },
 
