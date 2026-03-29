@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { DeadlineModel, type DeadlineDocument } from './deadlines.model.js';
 import { runCypher } from '../../config/neo4j.js';
 import { getRedis } from '../../config/redis.js';
@@ -21,17 +22,28 @@ export async function getMyDeadlines(userId: string) {
   const cached = await getCache(cacheKey);
   if (cached) return cached;
 
-  const coursesResult = await runCypher(
-    `MATCH (s:Student {id: $userId})-[:ENROLLED_IN]->(c:Course)
-     RETURN c.id AS id`,
-    { userId }
-  );
+  // Get courses the user is enrolled in (Neo4j)
+  let courseIds: string[] = [];
+  try {
+    const coursesResult = await runCypher(
+      `MATCH (s:Student {id: $userId})-[:ENROLLED_IN]->(c:Course)
+       RETURN c.id AS id`,
+      { userId }
+    );
+    courseIds = coursesResult.records.map((r) => r.get('id') as string);
+  } catch {
+    // Neo4j might not have the student node yet
+  }
 
-  const courseIds = coursesResult.records.map((r) => r.get('id') as string);
-  if (courseIds.length === 0) return [];
+  // Show deadlines for enrolled courses OR created by this user
+  const conditions = [];
+  if (courseIds.length > 0) {
+    conditions.push({ 'course.id': { $in: courseIds } });
+  }
+  conditions.push({ 'createdBy.id': new mongoose.Types.ObjectId(userId) });
 
   const deadlines = await DeadlineModel.find({
-    'course.id': { $in: courseIds },
+    $or: conditions,
     dueDate: { $gt: new Date() },
   })
     .sort({ dueDate: 1 })
@@ -135,20 +147,29 @@ export async function deleteDeadline(deadlineId: string, userId: string) {
 // ---------- Upcoming Deadlines ----------
 
 export async function getUpcomingDeadlines(userId: string, days: number = 7) {
-  const coursesResult = await runCypher(
-    `MATCH (s:Student {id: $userId})-[:ENROLLED_IN]->(c:Course)
-     RETURN c.id AS id`,
-    { userId }
-  );
-
-  const courseIds = coursesResult.records.map((r) => r.get('id') as string);
-  if (courseIds.length === 0) return [];
+  let courseIds: string[] = [];
+  try {
+    const coursesResult = await runCypher(
+      `MATCH (s:Student {id: $userId})-[:ENROLLED_IN]->(c:Course)
+       RETURN c.id AS id`,
+      { userId }
+    );
+    courseIds = coursesResult.records.map((r) => r.get('id') as string);
+  } catch {
+    // Neo4j might not have the student node yet
+  }
 
   const now = new Date();
   const until = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
 
+  const conditions = [];
+  if (courseIds.length > 0) {
+    conditions.push({ 'course.id': { $in: courseIds } });
+  }
+  conditions.push({ 'createdBy.id': new mongoose.Types.ObjectId(userId) });
+
   return DeadlineModel.find({
-    'course.id': { $in: courseIds },
+    $or: conditions,
     dueDate: { $gt: now, $lte: until },
   })
     .sort({ dueDate: 1 })
