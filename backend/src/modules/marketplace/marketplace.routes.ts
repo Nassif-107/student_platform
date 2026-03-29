@@ -15,6 +15,7 @@ import {
 const listingsQuerySchema = z.object({
   type: z.enum(['sell', 'buy', 'exchange', 'free']).optional(),
   courseId: z.string().length(24).optional(),
+  sellerId: z.string().length(24).optional(),
   minPrice: z.coerce.number().min(0).optional(),
   maxPrice: z.coerce.number().min(0).optional(),
   status: z.enum(['active', 'reserved', 'sold', 'closed']).optional(),

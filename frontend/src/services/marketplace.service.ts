@@ -30,6 +30,7 @@ export interface ListingsParams {
   search?: string
   type?: string
   condition?: string
+  sellerId?: string
   minPrice?: number
   maxPrice?: number
   university?: string

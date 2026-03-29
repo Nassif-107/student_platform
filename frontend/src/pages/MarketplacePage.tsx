@@ -1,9 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { PageTransition } from '@/components/shared/PageTransition'
-import { Plus, BookOpen, ImageIcon } from 'lucide-react'
+import { Plus, BookOpen, ImageIcon, Package } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -23,6 +23,7 @@ import { ROUTES, DEFAULT_PAGE_SIZE } from '@/lib/constants'
 import { cn } from '@/lib/cn'
 import { marketplaceService } from '@/services/marketplace.service'
 import type { Listing, ListingsParams } from '@/services/marketplace.service'
+import { useAuthStore } from '@/store/auth.store'
 
 const TYPE_LABELS: Record<string, string> = {
   sell: 'Продажа',
@@ -117,6 +118,8 @@ function ListingCard({ listing }: { listing: Listing }) {
 }
 
 export function MarketplacePage() {
+  const userId = useAuthStore((s) => s.user?.id)
+  const [showMine, setShowMine] = useState(false)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [condition, setCondition] = useState<string>('all')
@@ -171,18 +174,34 @@ export function MarketplacePage() {
     return () => observer.disconnect()
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-  const listings = data?.pages.flatMap((p) => p.items) ?? []
+  const { data: myListingsData } = useQuery({
+    queryKey: ['my-listings', userId],
+    queryFn: () => marketplaceService.getListings({ sellerId: userId!, limit: 50 }),
+    enabled: showMine && !!userId,
+  })
+
+  const listings = showMine
+    ? (myListingsData?.items ?? [])
+    : (data?.pages.flatMap((p) => p.items) ?? [])
 
   return (
     <PageTransition className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold text-foreground">Маркетплейс учебников</h1>
-        <Button asChild>
-          <Link to={ROUTES.NEW_LISTING}>
-            <Plus className="h-4 w-4" />
-            Создать объявление
+        <div className="flex gap-2">
+          {userId && (
+            <Button variant={showMine ? 'default' : 'outline'} onClick={() => setShowMine(!showMine)} className="gap-1.5">
+              <Package className="h-4 w-4" />
+              {showMine ? 'Все объявления' : 'Мои объявления'}
+            </Button>
+          )}
+          <Button asChild>
+            <Link to={ROUTES.NEW_LISTING}>
+              <Plus className="h-4 w-4" />
+              Создать объявление
           </Link>
-        </Button>
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">

@@ -7,6 +7,7 @@ import { ServiceError } from '../../utils/service-error.js';
 interface ListingsQuery {
   type?: string;
   courseId?: string;
+  sellerId?: string;
   minPrice?: number;
   maxPrice?: number;
   status?: string;
@@ -52,9 +53,13 @@ export async function getListings(query: ListingsQuery) {
   if (query.courseId) {
     filter['course.id'] = query.courseId;
   }
+  if (query.sellerId) {
+    filter['seller.id'] = query.sellerId;
+  }
   if (query.status) {
     filter.status = query.status;
-  } else {
+  } else if (!query.sellerId) {
+    // Default to active only, unless filtering by seller (show all their listings)
     filter.status = 'active';
   }
   if (query.minPrice !== undefined || query.maxPrice !== undefined) {
