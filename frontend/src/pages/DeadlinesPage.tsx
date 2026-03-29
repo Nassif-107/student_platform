@@ -133,7 +133,7 @@ export function DeadlinesPage() {
               </div>
               <div className="space-y-2">
                 <Label>Курс <span className="text-destructive">*</span></Label>
-                <Select value={courseId} onValueChange={setCourseId}>
+                <Select value={courseId || undefined} onValueChange={setCourseId}>
                   <SelectTrigger><SelectValue placeholder="Выберите курс" /></SelectTrigger>
                   <SelectContent>
                     {courses?.items?.map((c) => (
@@ -144,7 +144,7 @@ export function DeadlinesPage() {
               </div>
               <div className="space-y-2">
                 <Label>Тип <span className="text-destructive">*</span></Label>
-                <Select value={type} onValueChange={setType}>
+                <Select value={type || undefined} onValueChange={setType}>
                   <SelectTrigger><SelectValue placeholder="Тип задания" /></SelectTrigger>
                   <SelectContent>
                     {DEADLINE_TYPES.map((t) => (

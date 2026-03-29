@@ -116,7 +116,7 @@ export function FindTeamPage() {
           <CardContent className="p-6 space-y-4">
             <div className="space-y-2">
               <Label>Курс <span className="text-destructive">*</span></Label>
-              <Select value={courseId} onValueChange={setCourseId}>
+              <Select value={courseId || undefined} onValueChange={setCourseId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Выберите курс" />
                 </SelectTrigger>
