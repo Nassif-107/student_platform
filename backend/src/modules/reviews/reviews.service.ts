@@ -1,4 +1,4 @@
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { ServiceError } from '../../utils/service-error.js';
 import { trackActivity } from '../../utils/influx-writer.js';
 import { deleteCachePattern } from '../../utils/cache.js';
@@ -241,6 +241,6 @@ async function updateTargetStats(
   const Model = ALLOWED_TARGETS[targetType as keyof typeof ALLOWED_TARGETS];
 
   if (Model) {
-    await Model.findByIdAndUpdate(targetId, { $set: stats });
+    await (Model as mongoose.Model<unknown>).findByIdAndUpdate(targetId, { $set: stats });
   }
 }

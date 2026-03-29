@@ -37,7 +37,8 @@ export async function listQuestions(
     limit: parsedLimit,
   });
 
-  return reply.send(paginated(result.questions, result.total, result.page, result.limit));
+  const { questions, total, page: p, limit: l } = result as { questions: unknown[]; total: number; page: number; limit: number };
+  return reply.send(paginated(questions, total, p, l));
 }
 
 // ---------- GET /questions/:id ----------
@@ -58,14 +59,15 @@ export async function getQuestion(
     return reply.code(404).send(error('NOT_FOUND', 'Вопрос не найден'));
   }
 
+  const r = result as { question: unknown; answers: unknown[]; answersPage: number; answersLimit: number; totalAnswers: number };
   return reply.send(
     success({
-      question: result.question,
-      answers: result.answers,
+      question: r.question,
+      answers: r.answers,
       answersPagination: {
-        page: result.answersPage,
-        limit: result.answersLimit,
-        total: result.totalAnswers,
+        page: r.answersPage,
+        limit: r.answersLimit,
+        total: r.totalAnswers,
       },
     })
   );

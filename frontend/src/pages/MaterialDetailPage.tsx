@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { useQuery, useMutation } from '@tanstack/react-query'
-import { FileText, Download, Heart, MessageCircle, User, Loader2, ArrowLeft } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { FileText, Download, Heart, MessageCircle, User, Loader2, ArrowLeft, Send } from 'lucide-react'
 import { materialsService } from '@/services/materials.service'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useToast } from '@/components/ui/toast'
-import { formatDateTime } from '@/lib/format-date'
+import { formatDateTime, formatRelative } from '@/lib/format-date'
 import { formatNumber } from '@/lib/format-number'
 import { PageTransition } from '@/components/shared/PageTransition'
 import { Breadcrumbs } from '@/components/shared/Breadcrumbs'
@@ -17,6 +19,9 @@ export function MaterialDetailPage() {
   const navigate = useNavigate()
 
   const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [commentText, setCommentText] = useState('')
+
   const { data: material, isLoading } = useQuery({
     queryKey: ['material', id],
     queryFn: () => materialsService.getMaterialById(id!),
@@ -35,21 +40,25 @@ export function MaterialDetailPage() {
     }
   }, [material?.id])
 
+  // Ref to track pre-mutation state for safe revert
+  const preMutationLiked = useRef(false)
+
   const likeMutation = useMutation({
     mutationFn: () => materialsService.likeMaterial(id!),
     onMutate: () => {
-      setLiked((prev) => !prev)
-      setLikeCount((prev) => prev + (liked ? -1 : 1))
+      preMutationLiked.current = liked
+      setLiked(!liked)
+      setLikeCount((prev) => Math.max(0, prev + (liked ? -1 : 1)))
     },
     onSuccess: (result) => {
       const res = result as unknown as { liked: boolean; likeCount: number }
-      setLiked(res.liked)
-      setLikeCount(res.likeCount)
+      if (typeof res.liked === 'boolean') setLiked(res.liked)
+      if (typeof res.likeCount === 'number') setLikeCount(res.likeCount)
     },
     onError: (err) => {
-      // Revert
-      setLiked((prev) => !prev)
-      setLikeCount((prev) => prev + (liked ? 1 : -1))
+      // Revert to pre-mutation state
+      setLiked(preMutationLiked.current)
+      setLikeCount((prev) => Math.max(0, prev + (preMutationLiked.current ? 1 : -1)))
       toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось оценить материал', variant: 'error' })
     },
   })
@@ -64,6 +73,18 @@ export function MaterialDetailPage() {
     onError: (err) => {
       if (material?.fileUrl) window.open(material.fileUrl, '_blank')
       else toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось скачать файл', variant: 'error' })
+    },
+  })
+
+  const commentMutation = useMutation({
+    mutationFn: (text: string) => materialsService.addComment(id!, text),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['material', id] })
+      setCommentText('')
+      toast({ title: 'Комментарий добавлен', variant: 'success' })
+    },
+    onError: (err) => {
+      toast({ title: 'Ошибка', description: err instanceof Error ? err.message : 'Не удалось добавить комментарий', variant: 'error' })
     },
   })
 
@@ -159,6 +180,69 @@ export function MaterialDetailPage() {
           ))}
         </div>
         </div>
+
+        {/* Comments Section */}
+        {(() => {
+          const comments = (material as any).comments as Array<{ id: string; text: string; authorId: string; authorName: string; createdAt: string }> | undefined
+          const commentTotal = comments?.length ?? material.commentCount ?? 0
+          return (
+        <div className="rounded-2xl border border-border bg-card p-6 md:p-8">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <MessageCircle className="h-5 w-5" />
+            Комментарии ({commentTotal})
+          </h2>
+
+          {/* Add comment */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              if (commentText.trim().length > 0) commentMutation.mutate(commentText.trim())
+            }}
+            className="flex gap-3 mb-6"
+          >
+            <Input
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Написать комментарий..."
+              className="flex-1"
+            />
+            <Button type="submit" disabled={!commentText.trim() || commentMutation.isPending} className="gap-2 shrink-0">
+              {commentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Отправить
+            </Button>
+          </form>
+
+          {/* Comments list */}
+          {!comments?.length ? (
+            <div className="rounded-xl border border-dashed p-8 text-center">
+              <MessageCircle className="mx-auto h-8 w-8 text-muted-foreground/40" />
+              <p className="mt-3 text-sm text-muted-foreground">Комментариев пока нет. Будьте первым!</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {comments.map((c) => (
+                <div key={c.id} className="flex gap-3">
+                  <Link to={ROUTES.PROFILE(c.authorId)}>
+                    <Avatar className="h-8 w-8 shrink-0">
+                      <AvatarFallback className="text-xs">{c.authorName?.charAt(0) ?? '?'}</AvatarFallback>
+                    </Avatar>
+                  </Link>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Link to={ROUTES.PROFILE(c.authorId)} className="text-sm font-medium hover:text-primary transition-colors">
+                        {c.authorName}
+                      </Link>
+                      <span className="text-xs text-muted-foreground">{formatRelative(c.createdAt)}</span>
+                    </div>
+                    <p className="mt-1 text-sm text-foreground">{c.text}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+          )
+        })()}
       </div>
     </PageTransition>
   )

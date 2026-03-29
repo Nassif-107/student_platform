@@ -123,7 +123,7 @@ export function ProfessorDetailPage() {
                   {(professor.averageRating ?? 0).toFixed(1)}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  / 5.0
+                  / 10
                 </span>
               </div>
               <Separator orientation="vertical" className="h-5" />

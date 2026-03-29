@@ -21,6 +21,7 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
   if (SMTP_CONFIGURED) {
     try {
       // Attempt dynamic import — succeeds only when nodemailer is installed
+      // @ts-expect-error nodemailer is an optional dependency
       const nodemailer = await import('nodemailer');
 
       const transporter = nodemailer.createTransport({

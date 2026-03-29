@@ -27,13 +27,12 @@ import { ROUTES, MAX_FILE_SIZE, ACCEPTED_FILE_EXTENSIONS } from '@/lib/constants
 import { cn } from '@/lib/cn'
 
 const materialTypes = [
-  { value: 'lecture', label: 'Лекция' },
-  { value: 'lab', label: 'Лабораторная' },
-  { value: 'summary', label: 'Конспект' },
-  { value: 'cheatsheet', label: 'Шпаргалка' },
-  { value: 'exam', label: 'Экзамен' },
-  { value: 'homework', label: 'ДЗ' },
-  { value: 'other', label: 'Другое' },
+  { value: 'конспект', label: 'Конспект' },
+  { value: 'лабораторная', label: 'Лабораторная' },
+  { value: 'шпаргалка', label: 'Шпаргалка' },
+  { value: 'экзамен', label: 'Экзамен' },
+  { value: 'презентация', label: 'Презентация' },
+  { value: 'другое', label: 'Другое' },
 ] as const
 
 interface UploadFormData {
@@ -73,7 +72,7 @@ export function MaterialUploadPage() {
     defaultValues: {
       title: '',
       description: '',
-      type: 'lecture',
+      type: 'конспект',
       courseId: '',
       tags: [],
     },
@@ -86,12 +85,17 @@ export function MaterialUploadPage() {
 
   const uploadMutation = useMutation({
     mutationFn: async (data: UploadFormData) => {
+      // Find the selected course to include title and code
+      const selectedCourse = courses?.items?.find((c: { id: string }) => c.id === data.courseId)
+
       const formData = new FormData()
       formData.append('title', data.title)
-      formData.append('description', data.description)
+      formData.append('description', data.description || '')
       formData.append('type', data.type)
       formData.append('courseId', data.courseId)
-      data.tags.forEach((tag) => formData.append('tags[]', tag))
+      formData.append('courseTitle', (selectedCourse as any)?.name ?? '')
+      formData.append('courseCode', (selectedCourse as any)?.code ?? '')
+      if (data.tags.length > 0) formData.append('tags', JSON.stringify(data.tags))
       files.forEach((file) => formData.append('files', file))
       return materialsService.uploadMaterial(formData)
     },

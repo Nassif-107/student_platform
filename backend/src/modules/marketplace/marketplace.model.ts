@@ -4,7 +4,8 @@ import { LISTING_TYPES, CONDITION_TYPES, type ListingType, type ConditionType } 
 const listingTypeValues = Object.values(LISTING_TYPES);
 const conditionTypeValues = Object.values(CONDITION_TYPES);
 
-export type { ListingType, ConditionType as ListingCondition };
+type ListingCondition = ConditionType;
+export type { ListingType, ListingCondition };
 export type ListingStatus = 'active' | 'reserved' | 'sold' | 'closed';
 
 export interface ListingDocument extends Document {

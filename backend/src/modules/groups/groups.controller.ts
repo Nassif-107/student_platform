@@ -22,7 +22,8 @@ export async function listGroups(
     limit: limit ? Number(limit) : 20,
   });
 
-  return reply.send(paginated(result.groups, result.total, result.page, result.limit));
+  const { groups, total, page: p, limit: l } = result as { groups: unknown[]; total: number; page: number; limit: number };
+  return reply.send(paginated(groups, total, p, l));
 }
 
 // ---------- GET /groups/:id ----------

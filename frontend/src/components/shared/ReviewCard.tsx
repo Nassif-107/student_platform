@@ -77,13 +77,24 @@ export function ReviewCard({
       })
       return { previous }
     },
+    onSuccess: (result) => {
+      // Merge server response into cache instead of refetching (which would lose isLiked)
+      const res = result as unknown as { liked?: boolean; likeCount?: number }
+      if (typeof res.liked === 'boolean') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        queryClient.setQueryData(queryKey, (old: any) => {
+          if (!old) return old
+          const update = (r: any) => r.id === review.id ? { ...r, isLiked: res.liked, likeCount: res.likeCount ?? r.likeCount } : r
+          if (old.items && Array.isArray(old.items)) return { ...old, items: old.items.map(update) }
+          if (Array.isArray(old)) return old.map(update)
+          return old
+        })
+      }
+    },
     onError: (_err, _vars, context) => {
       if (context?.previous) {
         queryClient.setQueryData(queryKey, context.previous)
       }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey })
     },
   })
 
@@ -150,7 +161,7 @@ export function ReviewCard({
             </>
           )}
         </div>
-        <RatingStars value={review.rating} size="sm" />
+        <RatingStars value={review.rating} max={10} size="sm" />
       </div>
       <p className="mt-3 text-sm text-foreground leading-relaxed">{review.text}</p>
       <div className="mt-3 flex items-center justify-between">

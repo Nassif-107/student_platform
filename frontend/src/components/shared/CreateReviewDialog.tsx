@@ -138,10 +138,11 @@ export function CreateReviewDialog({
               render={({ field }) => (
                 <div className="flex items-center gap-3">
                   <RatingStars
-                    value={field.value / 2}
-                    max={5}
+                    value={field.value}
+                    max={10}
                     interactive
-                    onChange={(v) => field.onChange(v * 2)}
+                    size="sm"
+                    onChange={(v) => field.onChange(v)}
                   />
                   <span className="text-sm text-muted-foreground">{ratingLabel(field.value)}</span>
                 </div>
@@ -159,10 +160,11 @@ export function CreateReviewDialog({
               render={({ field }) => (
                 <div className="flex items-center gap-3">
                   <RatingStars
-                    value={field.value / 2}
-                    max={5}
+                    value={field.value}
+                    max={10}
                     interactive
-                    onChange={(v) => field.onChange(v * 2)}
+                    size="sm"
+                    onChange={(v) => field.onChange(v)}
                   />
                   <span className="text-sm text-muted-foreground">{ratingLabel(field.value)}</span>
                 </div>
@@ -180,10 +182,11 @@ export function CreateReviewDialog({
               render={({ field }) => (
                 <div className="flex items-center gap-3">
                   <RatingStars
-                    value={field.value / 2}
-                    max={5}
+                    value={field.value}
+                    max={10}
                     interactive
-                    onChange={(v) => field.onChange(v * 2)}
+                    size="sm"
+                    onChange={(v) => field.onChange(v)}
                   />
                   <span className="text-sm text-muted-foreground">{ratingLabel(field.value)}</span>
                 </div>
