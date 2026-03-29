@@ -17,6 +17,7 @@ export interface UserProfile extends User {
     telegram?: string
     vk?: string
     github?: string
+    phone?: string
   }
   settings?: {
     notifications?: {

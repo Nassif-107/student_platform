@@ -23,7 +23,7 @@ interface UseVirtualListResult {
  */
 export function useVirtualList(options: UseVirtualListOptions): UseVirtualListResult {
   const { itemCount, itemHeight, overscan = 5 } = options
-  const containerRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null!)
   const [scrollTop, setScrollTop] = useState(0)
   const [containerHeight, setContainerHeight] = useState(0)
 

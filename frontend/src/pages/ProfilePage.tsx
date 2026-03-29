@@ -3,14 +3,13 @@ import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
   FileText, MessageSquare, Star, HelpCircle, Pencil,
-  MapPin, Send, ExternalLink, GraduationCap, BookOpen,
+  Send, ExternalLink, GraduationCap, BookOpen,
   Github, Phone,
 } from 'lucide-react'
 import { PageTransition } from '@/components/shared/PageTransition'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'

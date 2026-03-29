@@ -186,7 +186,6 @@ export function CommandPalette() {
     if (isAdmin) actions.push({ id: 'a-platform', label: 'Платформенная аналитика', icon: Shield, path: '/analytics', roleBadge: 'Админ' })
     const filteredActions = lowerQ ? actions.filter((i) => i.label.toLowerCase().includes(lowerQ)) : actions
     if (filteredActions.length) result.push({ title: 'Действия', items: filteredActions })
-    }
 
     return result
   }, [query, isSearching, contentGroups, user, unreadCount, isMod, isAdmin])

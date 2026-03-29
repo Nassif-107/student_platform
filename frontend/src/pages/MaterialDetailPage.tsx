@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { FileText, Download, Heart, MessageCircle, User, Loader2, ArrowLeft } from 'lucide-react'
 import { materialsService } from '@/services/materials.service'
 import { Button } from '@/components/ui/button'
@@ -17,8 +17,6 @@ export function MaterialDetailPage() {
   const navigate = useNavigate()
 
   const { toast } = useToast()
-  const queryClient = useQueryClient()
-
   const { data: material, isLoading } = useQuery({
     queryKey: ['material', id],
     queryFn: () => materialsService.getMaterialById(id!),

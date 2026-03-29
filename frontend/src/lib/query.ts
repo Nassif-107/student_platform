@@ -2,7 +2,8 @@
  * Build a URL query string from a params object.
  * Handles undefined/null values (skipped), arrays (appended), and primitives (set).
  */
-export function buildQueryString(params?: Record<string, unknown>): string {
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export function buildQueryString(params?: Record<string, any>): string {
   if (!params) return ''
 
   const searchParams = new URLSearchParams()

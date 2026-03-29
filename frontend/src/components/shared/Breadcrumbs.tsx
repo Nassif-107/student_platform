@@ -43,7 +43,7 @@ export function Breadcrumbs({ current, className }: BreadcrumbsProps) {
   let pathAccumulator = ''
 
   for (let i = 0; i < segments.length; i++) {
-    const seg = segments[i]
+    const seg = segments[i]!
     pathAccumulator += `/${seg}`
 
     // If it's the last segment and we have a custom label, use it
@@ -58,8 +58,8 @@ export function Breadcrumbs({ current, className }: BreadcrumbsProps) {
       }
     }
     // Known route segment
-    else if (ROUTE_LABELS[seg]) {
-      items.push({ label: ROUTE_LABELS[seg], path: pathAccumulator })
+    else if (seg in ROUTE_LABELS) {
+      items.push({ label: ROUTE_LABELS[seg as keyof typeof ROUTE_LABELS]!, path: pathAccumulator })
     }
   }
 

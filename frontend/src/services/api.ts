@@ -7,11 +7,6 @@ interface ApiResponse<T> {
   meta?: Record<string, unknown>
 }
 
-interface ApiError {
-  success: false
-  message: string
-  statusCode: number
-}
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function transformIds(obj: any): any {

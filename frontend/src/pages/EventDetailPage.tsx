@@ -84,7 +84,7 @@ export function EventDetailPage() {
 
   const isRegistered = event.isRegistered ?? (user ? event.attendees.includes(user.id) : false)
   const isPast = new Date(event.date) < new Date()
-  const participantList = Array.isArray(participants) ? participants : (participants as { items?: unknown[] })?.items ?? []
+  const participantList = Array.isArray(participants) ? participants : (participants as unknown as { items?: unknown[] })?.items ?? []
 
   return (
     <PageTransition>
