@@ -134,10 +134,31 @@ export async function createQuestion(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const { fields, files } = await parseMultipart(request);
+  let title: string | undefined;
+  let body: string | undefined;
+  let tags: string[] = [];
+  let courseId: string | undefined;
+  let courseTitle: string | undefined;
+  let attachments: Awaited<ReturnType<typeof saveUploadedFiles>> = [];
 
-  const title = fields.title?.trim();
-  const body = fields.body?.trim();
+  const contentType = request.headers['content-type'] ?? '';
+  if (contentType.includes('multipart')) {
+    const { fields, files } = await parseMultipart(request);
+    title = fields.title?.trim();
+    body = fields.body?.trim();
+    tags = fields.tags ? JSON.parse(fields.tags) : [];
+    courseId = fields.courseId;
+    courseTitle = fields.courseTitle;
+    attachments = await saveUploadedFiles(files, 'forum');
+  } else {
+    const json = request.body as Record<string, unknown>;
+    title = (json.title as string)?.trim();
+    body = (json.body as string)?.trim();
+    tags = (json.tags as string[]) ?? [];
+    courseId = json.courseId as string | undefined;
+    courseTitle = json.courseTitle as string | undefined;
+  }
+
   if (!title || title.length < 5) {
     return reply.code(422).send(error('VALIDATION_ERROR', 'Заголовок должен содержать минимум 5 символов'));
   }
@@ -145,15 +166,12 @@ export async function createQuestion(
     return reply.code(422).send(error('VALIDATION_ERROR', 'Описание должно содержать минимум 10 символов'));
   }
 
-  const tags = fields.tags ? JSON.parse(fields.tags) : [];
-  const attachments = await saveUploadedFiles(files, 'forum');
-
   const user = request.user;
   const dbUser = await UserModel.findById(user.id).lean();
   const authorName = dbUser ? formatFullName(dbUser.name) : 'Unknown';
 
   const question = await forumService.createQuestion(
-    { title, body, courseId: fields.courseId, courseTitle: fields.courseTitle, tags, attachments },
+    { title, body, courseId, courseTitle, tags, attachments },
     { id: user.id, name: authorName, avatar: dbUser?.avatar },
   );
 
@@ -166,14 +184,22 @@ export async function createAnswer(
   request: FastifyRequest<{ Params: { id: string } }>,
   reply: FastifyReply
 ) {
-  const { fields, files } = await parseMultipart(request);
+  let body: string | undefined;
+  let attachments: Awaited<ReturnType<typeof saveUploadedFiles>> = [];
 
-  const body = fields.body?.trim();
+  const contentType = request.headers['content-type'] ?? '';
+  if (contentType.includes('multipart')) {
+    const { fields, files } = await parseMultipart(request);
+    body = fields.body?.trim();
+    attachments = await saveUploadedFiles(files, 'forum');
+  } else {
+    const json = request.body as Record<string, unknown>;
+    body = (json.body as string)?.trim();
+  }
+
   if (!body || body.length < 5) {
     return reply.code(422).send(error('VALIDATION_ERROR', 'Ответ должен содержать минимум 5 символов'));
   }
-
-  const attachments = await saveUploadedFiles(files, 'forum');
 
   const user = request.user;
   const dbUser = await UserModel.findById(user.id).lean();
